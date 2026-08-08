@@ -20,7 +20,10 @@
   <Assets>
     <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
     <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%|" />
-    <!-- Registers the bundled MCP server for every solution, with no per-solution .mcp.json. -->
-    <Asset Type="mcp.json" Path="MCP\mcp.json" />
+    <!--
+      The MCP server ships under MCP\ but is not registered through a VSIX asset: Visual Studio
+      only documents file-based discovery (%USERPROFILE%\.mcp.json, <SolutionDir>\.vs\mcp.json and
+      friends). McpServerRegistration writes the .vs\mcp.json entry instead.
+    -->
   </Assets>
 </PackageManifest>

@@ -19,7 +19,12 @@
 
   <ItemGroup>
     <PackageReference Include="ModelContextProtocol" Version="2.1.0" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <!--
+      Kept in step with the abstractions ModelContextProtocol pulls in (10.0.10). Referencing an
+      older Hosting would leave the 8.0 implementation binding against 10.0 contracts, which on
+      .NET Framework only survives by way of binding redirects.
+    -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 

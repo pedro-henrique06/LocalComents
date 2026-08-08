@@ -82,15 +82,23 @@ namespace LocalComents
             LocalComentsSettings.HideStaleComments = options.HideStaleComments;
 
             var fileName = string.IsNullOrWhiteSpace(options.FileName) ? ".local-comments.json" : options.FileName.Trim();
-            var folder = ResolveStorageFolder(options);
+            var solutionFolder = GetSolutionFolder();
+            var folder = ResolveStorageFolder(options, solutionFolder);
+
+            string? storageFile = null;
 
             if (!string.IsNullOrEmpty(folder))
             {
-                CommentStore.Instance.UseStorageFile(Path.Combine(folder, fileName));
+                storageFile = Path.Combine(folder, fileName);
+                CommentStore.Instance.UseStorageFile(storageFile);
             }
+
+            // The MCP server is a separate process: it only finds the right file if we hand it the
+            // resolved path, so the registration has to be refreshed alongside the storage itself.
+            McpServerRegistration.Update(solutionFolder, storageFile, options.RegisterMcpServer);
         }
 
-        private string ResolveStorageFolder(LocalComentsOptionsPage options)
+        private string ResolveStorageFolder(LocalComentsOptionsPage options, string? solutionFolder)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
@@ -105,7 +113,7 @@ namespace LocalComents
                     return string.IsNullOrWhiteSpace(options.CustomFolder) ? userFolder : options.CustomFolder.Trim();
 
                 default:
-                    return GetSolutionFolder() ?? userFolder;
+                    return solutionFolder ?? userFolder;
             }
         }
 

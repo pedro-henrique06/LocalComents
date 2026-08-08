@@ -55,6 +55,11 @@ namespace LocalComents.Options
         [Description("Hides comments whose anchor text no longer matches the code at that position.")]
         public bool HideStaleComments { get; set; }
 
+        [Category("MCP")]
+        [DisplayName("Register the MCP server for this solution")]
+        [Description("Writes the bundled MCP server into <SolutionDir>\\.vs\\mcp.json so Copilot agent mode can read the local comments. Turn it off to keep that file untouched.")]
+        public bool RegisterMcpServer { get; set; } = true;
+
         public override void SaveSettingsToStorage()
         {
             base.SaveSettingsToStorage();

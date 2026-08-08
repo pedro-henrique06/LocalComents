@@ -45,30 +45,51 @@ Em *chat > + Add Reference > Prompts > MCP prompts*:
 
 ### Instalação — nenhuma
 
-O servidor vai **dentro do VSIX**, na pasta `MCP\`, e é registrado pelo asset:
+O servidor vai **dentro do VSIX**, na pasta `MCP\`, e a própria extensão o registra: ao abrir uma
+solução, o package escreve a entrada em `<SolutionDir>\.vs\mcp.json`, um dos locais que o
+[Visual Studio varre](https://learn.microsoft.com/en-us/visualstudio/ide/mcp-servers?view=visualstudio)
+em busca de configuração MCP. Nada de publish, nada de configurar na mão.
 
-```xml
-<Asset Type="mcp.json" Path="MCP\mcp.json" />
+```json
+{
+  "servers": {
+    "local-comments": {
+      "type": "stdio",
+      "command": "C:\\...\\Extensions\\<id>\\MCP\\LocalComents.Mcp.exe",
+      "args": ["--file", "C:\\Repo\\MeuProjeto\\.local-comments.json"]
+    }
+  }
+}
 ```
 
-Esse é o mesmo mecanismo que o servidor MCP embutido do NuGet usa
-(`Common7\IDE\CommonExtensions\Microsoft\NuGet\MCP\`). O Visual Studio registra o servidor
-**globalmente**, para qualquer solução — não é preciso `.mcp.json` por projeto, nem publish, nem
-configuração manual. O `command` no [`MCP/mcp.json`](MCP/mcp.json) é relativo e resolve na pasta
-onde o arquivo está.
+Os dois valores são resolvidos em tempo de execução, e é justamente por isso que o arquivo é
+escrito pelo package em vez de ir pronto dentro do VSIX:
+
+- **`command` é absoluto.** A pasta de instalação da extensão não está no `PATH`, então um nome
+  simples como `LocalComents.Mcp.exe` não resolveria.
+- **`--file` aponta para o arquivo real.** Sem ele o servidor sobe diretórios a partir do
+  *working directory* do processo, que o Visual Studio não garante ser a pasta da solução — o
+  resultado seria ler o arquivo errado e responder "nenhum comentário", sem erro nenhum.
+
+A entrada é mesclada no `.vs\mcp.json`: outros servidores configurados ali são preservados, e o
+arquivo só é reescrito quando algo de fato muda (salvar reinicia o agent do Copilot). Desligando
+*Register the MCP server for this solution* nas opções, a entrada é removida e o arquivo volta ao
+que era. `.vs\` já é ignorado pelo Git por convenção, então nada disso entra no repositório.
 
 Depois de instalar, é só ativar as tools no ícone de chave inglesa do chat em modo *Agent* — elas
 vêm desabilitadas por padrão, comportamento do VS para qualquer servidor MCP.
 
-O servidor localiza o arquivo de comentários subindo diretórios a partir do diretório de trabalho.
-Para fixar explicitamente, use `--file <caminho>` ou a variável `LOCALCOMENTS_FILE`.
+Rodando o servidor à mão (Claude Code, por exemplo), a resolução do arquivo é:
+`--file <caminho>`, depois a variável `LOCALCOMENTS_FILE`, depois um *walk-up* a partir do
+diretório de trabalho, e por fim o perfil do usuário.
 
 #### Por que `net472` e não `net8.0`
 
 O servidor roda **fora** do `devenv.exe`, então o isolamento de processo já resolveria o conflito
-de binding de assembly do `System.Text.Json`. Mas `net472` é o alvo certo por outro motivo: o
-Visual Studio garante .NET Framework 4.7.2, enquanto o runtime do .NET 8 seria um pré-requisito que
-a extensão não tem como instalar. O servidor MCP do NuGet é `net472` pelo mesmo motivo.
+de binding de assembly do `System.Text.Json`. O motivo real é outro: o Visual Studio garante
+.NET Framework 4.7.2, enquanto o runtime do .NET 8 seria um pré-requisito que a extensão não tem
+como instalar. Todo o grafo de dependências do `ModelContextProtocol` 2.1.0 publica
+`netstandard2.0`/`net462`, então o alvo é viável.
 
 #### Armadilha no empacotamento
 
@@ -89,6 +110,8 @@ máquina do usuário.
 - **File name**: padrão `.local-comments.json`
 - **Show glyph in the margin** / **Highlight commented code** / **Show comment text inline**: liga e desliga cada indicador visual
 - **Hide stale comments**: esconde comentários cujo código âncora não existe mais
+- **Register the MCP server for this solution**: escreve (ou remove) a entrada do servidor em
+  `<SolutionDir>\.vs\mcp.json`
 
 > Dica: adicione `.local-comments.json` ao `.gitignore` se as anotações forem pessoais.
 
@@ -138,6 +161,10 @@ O projeto MCP **linka** `Models/LocalComment.cs`, `Services/CommentStore.cs` e
 `Services/LocalComentsLog.cs` do projeto VSIX em vez de duplicá-los, então o schema de
 armazenamento tem uma fonte de verdade só. Apenas arquivos sem dependência do Visual Studio
 podem ser compartilhados assim.
+
+`Services/McpServerRegistration.cs` é o que conecta os dois mundos: roda dentro do package, onde os
+dois dados que o servidor precisa — o caminho do executável e o do arquivo de comentários — já são
+conhecidos, e os grava no `.vs\mcp.json` da solução.
 
 `CommentStore` é um singleton simples (não MEF) porque é compartilhado entre o *package*
 (comandos, tool window) e os componentes MEF do editor, que são instanciados
