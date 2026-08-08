@@ -2,4 +2,9 @@
   <Project Path="LocalComents.csproj">
     <Deploy />
   </Project>
+  <Project Path="LocalComents.Mcp/LocalComents.Mcp.csproj" />
+  <Folder Name="/Solution Items/">
+    <File Path="MCP/mcp.json" />
+    <File Path="README.md" />
+  </Folder>
 </Solution>

@@ -68,6 +68,12 @@ bld/
 # Packages
 *.nupkg
 
+# MCP server publish output
+mcp-server/
+
+# Local annotations (personal by definition)
+.local-comments.json
+
 # OS
 .DS_Store
 Thumbs.db

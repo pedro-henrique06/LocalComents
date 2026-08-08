@@ -1,53 +1,129 @@
-﻿using Microsoft.VisualStudio.Shell;
 using System;
+using System.ComponentModel.Design;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
-using System.Threading.Tasks;
+using LocalComents.Commands;
+using LocalComents.Options;
+using LocalComents.Services;
+using LocalComents.ToolWindows;
+using Microsoft.VisualStudio;
+using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
+using Task = System.Threading.Tasks.Task;
 
 namespace LocalComents
 {
     /// <summary>
-    /// This is the class that implements the package exposed by this assembly.
+    /// Entry point of the extension: wires the commands, the tool window, the options page
+    /// and points <see cref="CommentStore"/> at the right storage file for the current solution.
     /// </summary>
-    /// <remarks>
-    /// <para>
-    /// The minimum requirement for a class to be considered a valid package for Visual Studio
-    /// is to implement the IVsPackage interface and register itself with the shell.
-    /// This package uses the helper classes defined inside the Managed Package Framework (MPF)
-    /// to do it: it derives from the Package class that provides the implementation of the
-    /// IVsPackage interface and uses the registration attributes defined in the framework to
-    /// register itself and its components with the shell. These attributes tell the pkgdef creation
-    /// utility what data to put into .pkgdef file.
-    /// </para>
-    /// <para>
-    /// To get loaded into VS, the package must be referred by &lt;Asset Type="Microsoft.VisualStudio.VsPackage" ...&gt; in .vsixmanifest file.
-    /// </para>
-    /// </remarks>
     [PackageRegistration(UseManagedResourcesOnly = true, AllowsBackgroundLoading = true)]
-    [Guid(LocalComentsPackage.PackageGuidString)]
+    [Guid(PackageGuids.PackageString)]
+    [ProvideMenuResource("Menus.ctmenu", 1)]
+    [ProvideOptionPage(typeof(LocalComentsOptionsPage), "Local Comments", "General", 0, 0, true)]
+    [ProvideToolWindow(typeof(CommentsToolWindow), Style = VsDockStyle.Tabbed, Window = SolutionExplorerGuid)]
+    [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionExists_string, PackageAutoLoadFlags.BackgroundLoad)]
+    [ProvideAutoLoad(VSConstants.UICONTEXT.NoSolution_string, PackageAutoLoadFlags.BackgroundLoad)]
     public sealed class LocalComentsPackage : AsyncPackage
     {
-        /// <summary>
-        /// LocalComentsPackage GUID string.
-        /// </summary>
-        public const string PackageGuidString = "fa17b004-5ded-4df0-91c5-278e3d4f3f9d";
+        private const string SolutionExplorerGuid = "3ae79031-e1bc-11d0-8f78-00a0c9110057";
 
-        #region Package Members
+        public const string PackageGuidString = PackageGuids.PackageString;
 
-        /// <summary>
-        /// Initialization of the package; this method is called right after the package is sited, so this is the place
-        /// where you can put all the initialization code that rely on services provided by VisualStudio.
-        /// </summary>
-        /// <param name="cancellationToken">A cancellation token to monitor for initialization cancellation, which can occur when VS is shutting down.</param>
-        /// <param name="progress">A provider for progress updates.</param>
-        /// <returns>A task representing the async work of package initialization, or an already completed task if there is none. Do not return null from this method.</returns>
         protected override async Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
         {
-            // When initialized asynchronously, the current thread may be a background thread at this point.
-            // Do any initialization that requires the UI thread after switching to the UI thread.
             await this.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+
+            await AddCommentCommand.InitializeAsync(this);
+            RegisterOpenToolWindowCommand();
+
+            LocalComentsOptionsPage.Changed += (_, _) => RefreshConfiguration();
+            Microsoft.VisualStudio.Shell.Events.SolutionEvents.OnAfterOpenSolution += (_, _) => RefreshConfiguration();
+            Microsoft.VisualStudio.Shell.Events.SolutionEvents.OnAfterCloseSolution += (_, _) => RefreshConfiguration();
+
+            RefreshConfiguration();
         }
 
-        #endregion
+        private void RegisterOpenToolWindowCommand()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            if (GetService(typeof(IMenuCommandService)) is not OleMenuCommandService commandService)
+            {
+                return;
+            }
+
+            var commandId = new CommandID(PackageGuids.CmdSet, PackageIds.CmdIdOpenToolWindow);
+            commandService.AddCommand(new MenuCommand((_, _) => ShowToolWindow(), commandId));
+        }
+
+        private void ShowToolWindow()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            var window = FindToolWindow(typeof(CommentsToolWindow), 0, true);
+            if (window?.Frame is IVsWindowFrame frame)
+            {
+                ErrorHandler.ThrowOnFailure(frame.Show());
+            }
+        }
+
+        /// <summary>Re-reads the options and re-points the store, e.g. after a solution is opened.</summary>
+        private void RefreshConfiguration()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            var options = (LocalComentsOptionsPage)GetDialogPage(typeof(LocalComentsOptionsPage));
+
+            LocalComentsSettings.ShowGlyph = options.ShowGlyph;
+            LocalComentsSettings.HighlightRange = options.HighlightRange;
+            LocalComentsSettings.ShowInlineText = options.ShowInlineText;
+            LocalComentsSettings.HideStaleComments = options.HideStaleComments;
+
+            var fileName = string.IsNullOrWhiteSpace(options.FileName) ? ".local-comments.json" : options.FileName.Trim();
+            var folder = ResolveStorageFolder(options);
+
+            if (!string.IsNullOrEmpty(folder))
+            {
+                CommentStore.Instance.UseStorageFile(Path.Combine(folder, fileName));
+            }
+        }
+
+        private string ResolveStorageFolder(LocalComentsOptionsPage options)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            var userFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+            switch (options.SaveLocation)
+            {
+                case SaveLocation.User:
+                    return userFolder;
+
+                case SaveLocation.Custom:
+                    return string.IsNullOrWhiteSpace(options.CustomFolder) ? userFolder : options.CustomFolder.Trim();
+
+                default:
+                    return GetSolutionFolder() ?? userFolder;
+            }
+        }
+
+        private string? GetSolutionFolder()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            if (GetService(typeof(SVsSolution)) is not IVsSolution solution)
+            {
+                return null;
+            }
+
+            if (ErrorHandler.Failed(solution.GetSolutionInfo(out var directory, out _, out _)))
+            {
+                return null;
+            }
+
+            return string.IsNullOrWhiteSpace(directory) ? null : directory;
+        }
     }
 }

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <Extern href="stdidcmd.h" />
+  <Extern href="vsshlids.h" />
+
+  <Commands package="guidLocalComentsPackage">
+
+    <Groups>
+      <Group guid="guidLocalComentsCmdSet" id="EditorContextGroup" priority="0x0600">
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_CTXT_CODEWIN" />
+      </Group>
+    </Groups>
+
+    <Buttons>
+      <Button guid="guidLocalComentsCmdSet" id="cmdidAddComment" priority="0x0100" type="Button">
+        <Parent guid="guidLocalComentsCmdSet" id="EditorContextGroup" />
+        <Strings>
+          <ButtonText>Add Local Comment</ButtonText>
+          <CommandName>LocalComents.AddComment</CommandName>
+        </Strings>
+      </Button>
+
+      <Button guid="guidLocalComentsCmdSet" id="cmdidOpenToolWindow" priority="0x0100" type="Button">
+        <Parent guid="guidSHLMainMenu" id="IDG_VS_WNDO_OTRWNDWS1" />
+        <Strings>
+          <ButtonText>Local Comments</ButtonText>
+          <CommandName>LocalComents.OpenWindow</CommandName>
+        </Strings>
+      </Button>
+    </Buttons>
+
+  </Commands>
+
+  <KeyBindings>
+    <KeyBinding guid="guidLocalComentsCmdSet" id="cmdidAddComment" editor="guidVSStd97" key1="C" mod1="Alt" />
+  </KeyBindings>
+
+  <Symbols>
+    <GuidSymbol name="guidLocalComentsPackage" value="{fa17b004-5ded-4df0-91c5-278e3d4f3f9d}" />
+
+    <GuidSymbol name="guidLocalComentsCmdSet" value="{3f6b0c1e-9a4d-4e2b-8f31-6c5a7d2e1b04}">
+      <IDSymbol name="EditorContextGroup" value="0x1020" />
+      <IDSymbol name="cmdidAddComment" value="0x0100" />
+      <IDSymbol name="cmdidOpenToolWindow" value="0x0101" />
+    </GuidSymbol>
+  </Symbols>
+
+</CommandTable>

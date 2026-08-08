@@ -4,16 +4,71 @@
     <TargetFramework>net472</TargetFramework>
     <Nullable>enable</Nullable>
     <LangVersion>14</LangVersion>
+    <RootNamespace>LocalComents</RootNamespace>
+    <UseWPF>true</UseWPF>
 
     <!-- VSIX settings -->
     <VSSDKBuildToolsAutoSetup>true</VSSDKBuildToolsAutoSetup>
     <GeneratePkgDefFile>true</GeneratePkgDefFile>
+    <DeployExtension>true</DeployExtension>
   </PropertyGroup>
   <ItemGroup>
     <ProjectCapability Include="CreateVsixContainer" />
   </ItemGroup>
   <ItemGroup>
+    <!--
+      This project lives at the repository root, so the SDK's default globbing would otherwise
+      pull in the MCP server's sources and its generated obj/ files.
+    -->
+    <Compile Remove="LocalComents.Mcp\**;mcp-server\**" />
+    <None Remove="LocalComents.Mcp\**;mcp-server\**" />
+    <Page Remove="LocalComents.Mcp\**;mcp-server\**" />
+    <EmbeddedResource Remove="LocalComents.Mcp\**;mcp-server\**" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="18.8.739" />
+    <!-- Newtonsoft.Json is shipped by Visual Studio itself, so it is not copied into the VSIX. -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" ExcludeAssets="runtime" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- MEF attributes used by the editor components. -->
+    <Reference Include="System.ComponentModel.Composition" />
+    <!-- OleMenuCommandService derives from System.ComponentModel.Design.MenuCommandService. -->
+    <Reference Include="System.Design" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The MCP server and its dependencies ship inside the VSIX under MCP\. -->
+    <Content Include="MCP\mcp.json">
+      <IncludeInVSIX>true</IncludeInVSIX>
+      <VSIXSubPath>MCP</VSIXSubPath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <!-- Referenced for build ordering only; the files are added by AddMcpServerToVsix below. -->
+    <ProjectReference Include="LocalComents.Mcp\LocalComents.Mcp.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <IncludeOutputGroupsInVSIX></IncludeOutputGroupsInVSIX>
+    </ProjectReference>
+  </ItemGroup>
+
+  <!--
+    The VSSDK output groups strip assemblies that Visual Studio itself ships (Newtonsoft.Json,
+    System.Text.Json, System.Memory...). That is correct for code loaded into devenv, but the MCP
+    server is a separate process and cannot resolve them from the IDE's folders — it would ship
+    broken. Feed the server's build output straight into VSIXSourceItem to bypass that filtering.
+  -->
+  <Target Name="AddMcpServerToVsix" BeforeTargets="GetVsixSourceItems" DependsOnTargets="ResolveProjectReferences">
+    <ItemGroup>
+      <_McpServerOutput Include="$(MSBuildProjectDirectory)\LocalComents.Mcp\bin\$(Configuration)\net472\**\*.*"
+                        Exclude="$(MSBuildProjectDirectory)\LocalComents.Mcp\bin\$(Configuration)\net472\**\*.pdb" />
+      <VSIXSourceItem Include="@(_McpServerOutput)">
+        <VSIXSubPath>MCP\%(RecursiveDir)</VSIXSubPath>
+      </VSIXSourceItem>
+    </ItemGroup>
+  </Target>
+  <ItemGroup>
+    <VSCTCompile Include="LocalComentsPackage.vsct">
+      <ResourceName>Menus.ctmenu</ResourceName>
+    </VSCTCompile>
   </ItemGroup>
 </Project>

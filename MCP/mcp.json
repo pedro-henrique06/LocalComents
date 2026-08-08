@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "local-comments": {
+      "type": "stdio",
+      "command": "LocalComents.Mcp.exe",
+      "args": []
+    }
+  }
+}

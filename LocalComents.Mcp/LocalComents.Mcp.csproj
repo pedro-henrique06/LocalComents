@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!--
+      net472, not net8.0: the server ships inside the VSIX, and Visual Studio itself
+      guarantees .NET Framework 4.7.2. Targeting .NET 8 would add a runtime prerequisite
+      the extension cannot install. This mirrors the built-in NuGet MCP server.
+    -->
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>LocalComents.Mcp</RootNamespace>
+    <AssemblyName>LocalComents.Mcp</AssemblyName>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" Version="2.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Linked from the VSIX project so the storage format has a single source of truth.
+      Only files free of Visual Studio dependencies can be shared.
+    -->
+    <Compile Include="..\Models\LocalComment.cs" Link="Shared\LocalComment.cs" />
+    <Compile Include="..\Services\CommentStore.cs" Link="Shared\CommentStore.cs" />
+    <Compile Include="..\Services\LocalComentsLog.cs" Link="Shared\LocalComentsLog.cs" />
+  </ItemGroup>
+
+</Project>

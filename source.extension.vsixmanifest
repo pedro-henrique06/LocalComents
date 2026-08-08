@@ -2,8 +2,9 @@
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
     <Identity Id="LocalComents.369a8589-fa5b-4837-a75c-d3252eb1677c" Version="1.0" Language="en-US" Publisher="LocalComents" />
-    <DisplayName>LocalComents</DisplayName>
-    <Description>Empty VSIX Project.</Description>
+    <DisplayName>Local Comments</DisplayName>
+    <Description xml:space="preserve">Private, file-based annotations for your code. Comments are stored in a JSON file next to your solution instead of in the source files, using the same format as the "Local Comments" VS Code extension.</Description>
+    <Tags>comments;annotations;notes;review</Tags>
   </Metadata>
   <Installation>
     <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.14, )">
@@ -18,5 +19,8 @@
   </Prerequisites>
   <Assets>
     <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
+    <Asset Type="Microsoft.VisualStudio.MefComponent" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%|" />
+    <!-- Registers the bundled MCP server for every solution, with no per-solution .mcp.json. -->
+    <Asset Type="mcp.json" Path="MCP\mcp.json" />
   </Assets>
 </PackageManifest>
