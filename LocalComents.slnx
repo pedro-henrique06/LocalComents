@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="LocalComents.csproj">
+    <Deploy />
+  </Project>
+</Solution>
