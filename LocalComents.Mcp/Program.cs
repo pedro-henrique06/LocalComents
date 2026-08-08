@@ -9,7 +9,7 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole(options => options.LogToStandardErrorThreshold = LogLevel.Trace);
 
-// The shared CommentStore reports failures through Debug.WriteLine; surface them on stderr
+// The shared CommentStore reports failures through LocalComentsLog (Trace); surface them on stderr
 // so a misconfigured storage path is diagnosable instead of looking like "no comments".
 System.Diagnostics.Trace.Listeners.Add(new System.Diagnostics.ConsoleTraceListener(useErrorStream: true));
 

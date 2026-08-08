@@ -1,0 +1,68 @@
+name: build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  vsix:
+    name: Build VSIX
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore
+        run: msbuild LocalComents.csproj -t:Restore -p:Configuration=Release -v:minimal
+
+      # DeployExtension is on in the project so F5 works locally; on the runner there is no
+      # Visual Studio instance to deploy into.
+      - name: Build
+        run: msbuild LocalComents.csproj -t:Build -p:Configuration=Release -p:DeployExtension=false -v:minimal
+
+      # The VSSDK output groups strip assemblies Visual Studio itself ships. That filtering is
+      # bypassed by the AddMcpServerToVsix target, because the MCP server runs out-of-process and
+      # cannot resolve anything from the IDE's folders. A VSIX missing these still installs
+      # cleanly and only fails when the server is launched, so assert on the contents here.
+      - name: Verify the MCP server is packaged
+        shell: pwsh
+        run: |
+          $vsix = Resolve-Path 'bin/Release/net472/LocalComents.vsix'
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [System.IO.Compression.ZipFile]::OpenRead($vsix)
+          try {
+            $entries = $archive.Entries.FullName
+          } finally {
+            $archive.Dispose()
+          }
+
+          $required = @(
+            'extension.vsixmanifest',
+            'MCP/LocalComents.Mcp.exe',
+            'MCP/LocalComents.Mcp.exe.config',
+            'MCP/ModelContextProtocol.dll',
+            'MCP/ModelContextProtocol.Core.dll',
+            'MCP/Newtonsoft.Json.dll',
+            'MCP/System.Text.Json.dll'
+          )
+
+          $missing = $required | Where-Object { $entries -notcontains $_ }
+          if ($missing) {
+            Write-Host "VSIX entries ($($entries.Count)):"
+            $entries | Sort-Object | ForEach-Object { Write-Host "  $_" }
+            throw "Missing from the VSIX: $($missing -join ', ')"
+          }
+
+          Write-Host "OK - $($entries.Count) entries, MCP server packaged with its dependencies."
+
+      - name: Upload VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: LocalComents-vsix
+          path: bin/Release/net472/LocalComents.vsix
+          if-no-files-found: error

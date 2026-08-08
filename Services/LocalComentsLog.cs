@@ -9,9 +9,14 @@ namespace LocalComents.Services
     /// </summary>
     internal static class LocalComentsLog
     {
+        /// <remarks>
+        /// <see cref="Trace"/> rather than <see cref="Debug"/>: the shipped VSIX and the MCP server
+        /// are Release builds, where <c>Debug.WriteLine</c> compiles away and every diagnostic here
+        /// would vanish — exactly when it is most needed.
+        /// </remarks>
         public static void Write(string message)
         {
-            Debug.WriteLine($"[LocalComents] {DateTime.Now:HH:mm:ss} {message}");
+            Trace.WriteLine($"[LocalComents] {DateTime.Now:HH:mm:ss} {message}");
         }
     }
 }

@@ -3,7 +3,8 @@
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
     <Nullable>enable</Nullable>
-    <LangVersion>14</LangVersion>
+    <!-- 'latest', not a pinned version: the manifest targets 17.14+, whose compiler predates C# 14. -->
+    <LangVersion>latest</LangVersion>
     <RootNamespace>LocalComents</RootNamespace>
     <UseWPF>true</UseWPF>
 
@@ -38,13 +39,8 @@
     <Reference Include="System.Design" />
   </ItemGroup>
   <ItemGroup>
-    <!-- The MCP server and its dependencies ship inside the VSIX under MCP\. -->
-    <Content Include="MCP\mcp.json">
-      <IncludeInVSIX>true</IncludeInVSIX>
-      <VSIXSubPath>MCP</VSIXSubPath>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <!-- Referenced for build ordering only; the files are added by AddMcpServerToVsix below. -->
+    <!-- The MCP server and its dependencies ship inside the VSIX under MCP\.
+         Referenced for build ordering only; the files are added by AddMcpServerToVsix below. -->
     <ProjectReference Include="LocalComents.Mcp\LocalComents.Mcp.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <IncludeOutputGroupsInVSIX></IncludeOutputGroupsInVSIX>
