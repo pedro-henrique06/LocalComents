@@ -184,6 +184,17 @@ carregada.
 `Newtonsoft.Json` é referenciado apenas em tempo de compilação (`ExcludeAssets="runtime"`) —
 o Visual Studio já distribui o assembly, então ele não vai dentro do VSIX.
 
+O workload *Visual Studio extension development* é dispensável para compilar: o
+`Microsoft.VSSDK.BuildTools` traz as ferramentas pelo NuGet e o import dos targets de design-time
+é condicionado a `Exists()`.
+
+### CI
+
+[`.github/workflows/build.yml`](.github/workflows/build.yml) compila em `windows-latest`, publica o
+`.vsix` como artifact e **confere o conteúdo do pacote**: um VSIX sem as DLLs do servidor MCP
+instala normalmente e só quebra na hora de subir o servidor, então o build falha cedo se
+`MCP\LocalComents.Mcp.exe` e suas dependências não estiverem lá.
+
 ## Limitações conhecidas
 
 - Os comentários são ancorados por número de linha. Editar o arquivo fora do Visual Studio
