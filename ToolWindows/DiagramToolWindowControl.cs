@@ -54,12 +54,20 @@ namespace LocalComents.ToolWindows
             };
 
             var refresh = ThemedButton("Refresh", "Re-read the generated document from disk");
-            refresh.Click += (_, _) => Render();
+            refresh.Click += (_, _) =>
+            {
+                ThreadHelper.ThrowIfNotOnUIThread();
+                Render();
+            };
             header.Children.Add(refresh);
 
             var open = ThemedButton("Open in browser", "Open the rendered diagram in the default browser");
             open.Margin = new Thickness(6, 0, 0, 0);
-            open.Click += (_, _) => OpenInBrowser();
+            open.Click += (_, _) =>
+            {
+                ThreadHelper.ThrowIfNotOnUIThread();
+                OpenInBrowser();
+            };
             header.Children.Add(open);
 
             Grid.SetRow(header, 0);
@@ -134,8 +142,8 @@ namespace LocalComents.ToolWindows
                 return;
             }
 
-            var folder = MermaidPage.PrepareFolder();
-            if (folder == null)
+            var renderFolder = MermaidPage.PrepareFolder();
+            if (renderFolder == null)
             {
                 ShowMessage("The bundled mermaid script is missing from the installed extension.");
                 return;
@@ -145,13 +153,13 @@ namespace LocalComents.ToolWindows
                 ? $"{Path.GetFileName(documentPath)} has no ```mermaid block."
                 : null;
 
-            _pagePath = MermaidPage.WritePage(folder, diagrams, IsDarkTheme(), empty);
+            _pagePath = MermaidPage.WritePage(renderFolder, diagrams, IsDarkTheme(), empty);
 
             _status.Text = diagrams.Count == 0
                 ? $"No diagram in {documentPath}"
                 : $"{diagrams.Count} diagram(s) from {documentPath}";
 
-            ShowPage(folder);
+            ShowPage(renderFolder);
         }
 
         private void ShowPage(string folder)
@@ -189,6 +197,8 @@ namespace LocalComents.ToolWindows
                 LocalComentsLog.Write($"The WebView could not be initialised: {ex.Message}");
                 _webViewUnavailable = true;
                 _webView = null;
+
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                 ShowWebViewFallback();
             }
         }
@@ -313,12 +323,16 @@ namespace LocalComents.ToolWindows
 
         private void OnDocumentChanged(object sender, FileSystemEventArgs e)
         {
-            // Raised on a watcher thread; the debounce timer belongs to the UI dispatcher.
-            _ = Dispatcher.BeginInvoke(new Action(() =>
+            // Raised on a watcher thread; the debounce timer belongs to the UI dispatcher. Nothing
+            // waits on the redraw, and a failure must not propagate back into the watcher.
+#pragma warning disable VSSDK007
+            ThreadHelper.JoinableTaskFactory.RunAsync(async () =>
             {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                 _debounce.Stop();
                 _debounce.Start();
-            }));
+            }).FileAndForget("LocalComents/Diagram/Reload");
+#pragma warning restore VSSDK007
         }
 
         private void StopWatching()

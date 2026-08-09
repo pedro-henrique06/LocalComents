@@ -185,6 +185,8 @@ namespace LocalComents.UI
         /// </summary>
         private UIElement BuildOpacityControl()
         {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
             var panel = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -228,6 +230,8 @@ namespace LocalComents.UI
 
             slider.ValueChanged += (_, e) =>
             {
+                ThreadHelper.ThrowIfNotOnUIThread();
+
                 var percent = (int)Math.Round(e.NewValue);
                 value.Text = percent + "%";
                 HighlightOpacity.SetPercent(percent);
