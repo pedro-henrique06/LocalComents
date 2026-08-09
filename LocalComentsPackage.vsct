@@ -28,6 +28,14 @@
           <CommandName>LocalComents.OpenWindow</CommandName>
         </Strings>
       </Button>
+
+      <Button guid="guidLocalComentsCmdSet" id="cmdidOpenDiagramWindow" priority="0x0101" type="Button">
+        <Parent guid="guidSHLMainMenu" id="IDG_VS_WNDO_OTRWNDWS1" />
+        <Strings>
+          <ButtonText>Local Comments Diagram</ButtonText>
+          <CommandName>LocalComents.OpenDiagramWindow</CommandName>
+        </Strings>
+      </Button>
     </Buttons>
 
   </Commands>
@@ -43,6 +51,7 @@
       <IDSymbol name="EditorContextGroup" value="0x1020" />
       <IDSymbol name="cmdidAddComment" value="0x0100" />
       <IDSymbol name="cmdidOpenToolWindow" value="0x0101" />
+      <IDSymbol name="cmdidOpenDiagramWindow" value="0x0102" />
     </GuidSymbol>
   </Symbols>
 

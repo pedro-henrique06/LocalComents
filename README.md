@@ -18,6 +18,7 @@ mesmo `.local-comments.json` pode ser usado pelos dois editores no mesmo reposit
 | Marcador na margem | Um "balão" aparece na margem indicadora da linha; o tooltip mostra o texto |
 | Tooltip ao passar o mouse | Quick Info mostra o comentário, a data e um aviso quando o código mudou |
 | Painel lateral | *View > Other Windows > Local Comments* — busca, navegação, edição e exclusão |
+| Janela de diagrama | *View > Other Windows > Local Comments Diagram* — renderiza os diagramas Mermaid do `DOCUMENTATION.md` gerado pelo agente, atualizando quando o arquivo muda |
 | Sincronização externa | O arquivo JSON é monitorado; alterações feitas pelo VS Code aparecem automaticamente |
 
 ## Servidor MCP — documentação gerada por IA
@@ -43,6 +44,28 @@ Em *chat > + Add Reference > Prompts > MCP prompts*:
 - **`generate_documentation`** — lê os comentários, confere contra o código-fonte e gera um
   `DOCUMENTATION.md` com diagrama Mermaid em bloco ```mermaid.
 - **`review_open_questions`** — transforma TODOs e dúvidas anotadas em lista priorizada de ações.
+
+### Janela de diagrama
+
+*View > Other Windows > Local Comments Diagram* renderiza os blocos ```mermaid do
+`DOCUMENTATION.md` que fica ao lado do arquivo de comentários.
+
+A extensão **não gera** diagrama: ela mostra o que o agente escreveu. Quem produz o conteúdo é o
+prompt `generate_documentation` acima, e o arquivo é monitorado — rodar o prompt de novo redesenha
+a janela sozinha, sem precisar clicar em *Refresh*.
+
+O `mermaid.min.js` vai dentro do VSIX (~3,5 MB) e é renderizado localmente. Nenhum diagrama sai
+da máquina, o que seria contraditório numa extensão de anotações privadas.
+
+#### Por que o WebView2 não vai no pacote
+
+O `Microsoft.Web.WebView2` é referenciado com `ExcludeAssets="runtime"`, como o `Newtonsoft.Json`:
+o próprio Visual Studio hospeda WebView2, então essas assemblies já estão carregadas no `devenv` e
+o loader nativo já está à mão. Distribuir uma segunda cópia dentro do VSIX é justamente o que causa
+conflito de versão capaz de impedir o package inteiro de carregar.
+
+Se mesmo assim o WebView não subir, a janela não fica em branco: a página já foi renderizada em
+disco e o botão **Open in browser** a abre no navegador padrão.
 
 ### Instalação — nenhuma
 

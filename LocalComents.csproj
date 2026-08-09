@@ -31,6 +31,13 @@
     <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="18.8.739" />
     <!-- Newtonsoft.Json is shipped by Visual Studio itself, so it is not copied into the VSIX. -->
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" ExcludeAssets="runtime" />
+    <!--
+      Compile-time only, like Newtonsoft: Visual Studio hosts WebView2 itself, so devenv already
+      has these assemblies loaded and the native loader on hand. Shipping a second copy inside the
+      VSIX is what causes the version conflicts that keep a package from loading at all — and the
+      diagram window degrades to opening the rendered page in a browser if the runtime is absent.
+    -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2792.45" ExcludeAssets="runtime" />
   </ItemGroup>
   <ItemGroup>
     <!-- MEF attributes used by the editor components. -->
@@ -73,6 +80,11 @@
     </Content>
     <Content Include="Resources\PreviewImage.png">
       <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <!-- Rendered offline by the diagram window; MermaidPage looks for it under WebView\. -->
+    <Content Include="Resources\WebView\mermaid.min.js">
+      <IncludeInVSIX>true</IncludeInVSIX>
+      <VSIXSubPath>WebView</VSIXSubPath>
     </Content>
   </ItemGroup>
   <ItemGroup>
