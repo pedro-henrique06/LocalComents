@@ -136,7 +136,11 @@ namespace LocalComents
             base.Dispose(disposing);
         }
 
-        private string? GetSolutionFolder()
+        /// <summary>
+        /// The folder the comments and the MCP registration belong to: the solution's folder, or
+        /// the opened folder in Open Folder mode.
+        /// </summary>
+        private string? GetWorkspaceFolder()
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
