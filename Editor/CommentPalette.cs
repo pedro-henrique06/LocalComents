@@ -12,6 +12,14 @@ namespace LocalComents.Editor
     /// <summary>One selectable comment colour.</summary>
     internal sealed class CommentPaletteEntry
     {
+        /// <summary>
+        /// Roughly 30% — enough to place the span at a glance, light enough that the syntax
+        /// colouring underneath survives in both light and dark themes.
+        /// </summary>
+        private const byte MarkerAlpha = 0x4D;
+
+        private const byte BorderAlpha = 0xA0;
+
         private TextMarkerTag? _markerTag;
 
         public CommentPaletteEntry(string id, string displayName, Color highlight, Color border, string markerFormatName)
@@ -34,6 +42,20 @@ namespace LocalComents.Editor
 
         /// <summary>Name of the <see cref="MarkerFormatDefinition"/> that paints this colour.</summary>
         public string MarkerFormatName { get; }
+
+        /// <summary>
+        /// <see cref="Highlight"/> made translucent, for the marker drawn behind code.
+        /// <para>
+        /// The palette colours are light by design — they have to read as a highlight on a white
+        /// background. Painted opaque behind a dark theme's light-on-dark text, that is light on
+        /// light, and the code stops being readable. Letting the editor's own background show
+        /// through keeps the contrast the theme intended and still marks the span.
+        /// </para>
+        /// </summary>
+        public Color MarkerFill => Color.FromArgb(MarkerAlpha, Highlight.R, Highlight.G, Highlight.B);
+
+        /// <summary>Border of the marker, softened for the same reason.</summary>
+        public Color MarkerBorder => Color.FromArgb(BorderAlpha, Border.R, Border.G, Border.B);
 
         public TextMarkerTag MarkerTag => _markerTag ??= new TextMarkerTag(MarkerFormatName);
     }
@@ -99,8 +121,10 @@ namespace LocalComents.Editor
     {
         protected CommentMarkerFormat(CommentPaletteEntry entry)
         {
-            BackgroundColor = entry.Highlight;
-            ForegroundColor = entry.Border;
+            // Translucent, not the opaque palette colour: this is painted behind code that has to
+            // stay readable. See CommentPaletteEntry.MarkerFill.
+            BackgroundColor = entry.MarkerFill;
+            ForegroundColor = entry.MarkerBorder;
             DisplayName = "Local Comments Highlight - " + entry.DisplayName;
             ZOrder = 5;
         }
