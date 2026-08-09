@@ -42,6 +42,11 @@ namespace LocalComents
             Microsoft.VisualStudio.Shell.Events.SolutionEvents.OnAfterOpenSolution += (_, _) => RefreshConfiguration();
             Microsoft.VisualStudio.Shell.Events.SolutionEvents.OnAfterCloseSolution += (_, _) => RefreshConfiguration();
 
+            // Open Folder mode raises its own pair of events; without these the workspace root is
+            // never picked up and everything silently falls back to the user profile.
+            Microsoft.VisualStudio.Shell.Events.SolutionEvents.OnAfterOpenFolder += (_, _) => RefreshConfiguration();
+            Microsoft.VisualStudio.Shell.Events.SolutionEvents.OnAfterCloseFolder += (_, _) => RefreshConfiguration();
+
             RefreshConfiguration();
         }
 
@@ -82,8 +87,8 @@ namespace LocalComents
             LocalComentsSettings.HideStaleComments = options.HideStaleComments;
 
             var fileName = string.IsNullOrWhiteSpace(options.FileName) ? ".local-comments.json" : options.FileName.Trim();
-            var solutionFolder = GetSolutionFolder();
-            var folder = ResolveStorageFolder(options, solutionFolder);
+            var workspaceFolder = GetWorkspaceFolder();
+            var folder = ResolveStorageFolder(options, workspaceFolder);
 
             string? storageFile = null;
 
@@ -95,10 +100,10 @@ namespace LocalComents
 
             // The MCP server is a separate process: it only finds the right file if we hand it the
             // resolved path, so the registration has to be refreshed alongside the storage itself.
-            McpServerRegistration.Update(solutionFolder, storageFile, options.RegisterMcpServer);
+            McpServerRegistration.Update(workspaceFolder, storageFile, options.RegisterMcpServer);
         }
 
-        private string ResolveStorageFolder(LocalComentsOptionsPage options, string? solutionFolder)
+        private string ResolveStorageFolder(LocalComentsOptionsPage options, string? workspaceFolder)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
@@ -113,7 +118,7 @@ namespace LocalComents
                     return string.IsNullOrWhiteSpace(options.CustomFolder) ? userFolder : options.CustomFolder.Trim();
 
                 default:
-                    return solutionFolder ?? userFolder;
+                    return workspaceFolder ?? userFolder;
             }
         }
 
@@ -140,12 +145,35 @@ namespace LocalComents
                 return null;
             }
 
-            if (ErrorHandler.Failed(solution.GetSolutionInfo(out var directory, out _, out _)))
+            if (ErrorHandler.Succeeded(solution.GetSolutionInfo(out var directory, out _, out _))
+                && !string.IsNullOrWhiteSpace(directory))
+            {
+                return directory;
+            }
+
+            // Open Folder mode has no solution file, so GetSolutionInfo comes back empty. The
+            // opened folder is still reachable as the solution directory property.
+            if (!IsInOpenFolderMode(solution))
             {
                 return null;
             }
 
-            return string.IsNullOrWhiteSpace(directory) ? null : directory;
+            if (ErrorHandler.Failed(solution.GetProperty((int)__VSPROPID.VSPROPID_SolutionDirectory, out var value)))
+            {
+                return null;
+            }
+
+            return value as string is { Length: > 0 } folder ? folder : null;
+        }
+
+        private static bool IsInOpenFolderMode(IVsSolution solution)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            return ErrorHandler.Succeeded(
+                       solution.GetProperty((int)__VSPROPID7.VSPROPID_IsInOpenFolderMode, out var value))
+                   && value is bool inFolderMode
+                   && inFolderMode;
         }
     }
 }

@@ -63,6 +63,19 @@
     </ItemGroup>
   </Target>
   <ItemGroup>
+    <!-- Shown by the VSIX installer and the Marketplace listing; referenced by <License>. -->
+    <Content Include="LICENSE.txt">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <!-- Marketplace listing artwork; referenced by <Icon>/<PreviewImage> in the manifest. -->
+    <Content Include="Resources\Icon.png">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+    <Content Include="Resources\PreviewImage.png">
+      <IncludeInVSIX>true</IncludeInVSIX>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
     <VSCTCompile Include="LocalComentsPackage.vsct">
       <ResourceName>Menus.ctmenu</ResourceName>
     </VSCTCompile>

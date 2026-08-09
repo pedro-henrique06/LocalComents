@@ -123,7 +123,9 @@ máquina do usuário.
 
 *Tools > Options > Local Comments > General*:
 
-- **Save location**: `Solution` (padrão, ao lado do `.sln`), `User` (perfil do usuário) ou `Custom`
+- **Save location**: `Solution` (padrão), `User` (perfil do usuário) ou `Custom`. No modo `Solution` a
+  raiz é a pasta do `.sln`/`.slnx` — ou a pasta aberta, quando se usa *Open Folder* (Folder View).
+  Sem nada aberto, cai no perfil do usuário
 - **Custom folder**: pasta usada quando o modo é `Custom`
 - **File name**: padrão `.local-comments.json`
 - **Show glyph in the margin** / **Highlight commented code** / **Show comment text inline**: liga e desliga cada indicador visual

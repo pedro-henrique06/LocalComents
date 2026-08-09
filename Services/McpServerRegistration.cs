@@ -8,8 +8,9 @@ using Newtonsoft.Json.Linq;
 namespace LocalComents.Services
 {
     /// <summary>
-    /// Registers the bundled MCP server in <c>&lt;SolutionDir&gt;\.vs\mcp.json</c>, one of the
-    /// locations Visual Studio scans for MCP configuration.
+    /// Registers the bundled MCP server in <c>&lt;WorkspaceRoot&gt;\.vs\mcp.json</c>, one of the
+    /// locations Visual Studio scans for MCP configuration. The root is the solution folder, or
+    /// the opened folder in Open Folder mode.
     /// <para>
     /// Writing the file from the package — instead of shipping a static one inside the VSIX — is
     /// what makes the server actually usable: only at runtime do we know the absolute path of the
@@ -38,11 +39,11 @@ namespace LocalComents.Services
         /// <summary>
         /// Brings <c>.vs\mcp.json</c> in line with the current configuration. Adds or updates our
         /// entry when <paramref name="enabled"/>, removes it otherwise, and leaves any other
-        /// server in the file untouched. Does nothing when no solution is open.
+        /// server in the file untouched. Does nothing when no workspace is open.
         /// </summary>
-        public static void Update(string? solutionDirectory, string? storageFile, bool enabled)
+        public static void Update(string? workspaceDirectory, string? storageFile, bool enabled)
         {
-            if (string.IsNullOrWhiteSpace(solutionDirectory))
+            if (string.IsNullOrWhiteSpace(workspaceDirectory))
             {
                 return;
             }

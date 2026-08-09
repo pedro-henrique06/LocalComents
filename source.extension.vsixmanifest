@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="LocalComents.369a8589-fa5b-4837-a75c-d3252eb1677c" Version="1.0" Language="en-US" Publisher="LocalComents" />
+    <Identity Id="LocalComents.369a8589-fa5b-4837-a75c-d3252eb1677c" Version="1.0.0" Language="en-US" Publisher="Pedro Candido" />
     <DisplayName>Local Comments</DisplayName>
     <Description xml:space="preserve">Private, file-based annotations for your code. Comments are stored in a JSON file next to your solution instead of in the source files, using the same format as the "Local Comments" VS Code extension.</Description>
-    <Tags>comments;annotations;notes;review</Tags>
+    <MoreInfo>https://github.com/pedro-henrique06/LocalComents</MoreInfo>
+    <License>LICENSE.txt</License>
+    <Icon>Resources\Icon.png</Icon>
+    <PreviewImage>Resources\PreviewImage.png</PreviewImage>
+    <Tags>comments;annotations;notes;review;mcp;copilot</Tags>
   </Metadata>
   <Installation>
     <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.14, )">
@@ -12,7 +16,8 @@
     </InstallationTarget>
   </Installation>
   <Dependencies>
-    <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.5,)" />
+    <!-- The extension and the bundled MCP server are both built for 4.7.2. -->
+    <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.7.2,)" />
   </Dependencies>
   <Prerequisites>
     <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.14, )" DisplayName="Visual Studio core editor" />
