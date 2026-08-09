@@ -29,6 +29,9 @@ jobs:
       # bypassed by the AddMcpServerToVsix target, because the MCP server runs out-of-process and
       # cannot resolve anything from the IDE's folders. A VSIX missing these still installs
       # cleanly and only fails when the server is launched, so assert on the contents here.
+      #
+      # mermaid.min.js is in the same boat: dropped from the package, the extension installs and
+      # only the diagram window breaks, at the moment someone opens it.
       - name: Verify the MCP server is packaged
         shell: pwsh
         run: |
@@ -48,7 +51,8 @@ jobs:
             'MCP/ModelContextProtocol.dll',
             'MCP/ModelContextProtocol.Core.dll',
             'MCP/Newtonsoft.Json.dll',
-            'MCP/System.Text.Json.dll'
+            'MCP/System.Text.Json.dll',
+            'WebView/mermaid.min.js'
           )
 
           $missing = $required | Where-Object { $entries -notcontains $_ }
