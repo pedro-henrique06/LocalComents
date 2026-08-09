@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
@@ -35,6 +36,9 @@ namespace LocalComents.UI
 
         public CommentInputDialog(string title, string? anchorText, string initialText = "", string? initialColorId = null)
         {
+            // The opacity control reads the editor's format map, which is main-thread only.
+            ThreadHelper.ThrowIfNotOnUIThread();
+
             _colorId = CommentPalette.Resolve(initialColorId).Id;
 
             Title = title;
@@ -96,6 +100,7 @@ namespace LocalComents.UI
             root.Children.Add(_input);
 
             var picker = BuildPalettePicker();
+            picker.Children.Add(BuildOpacityControl());
             Grid.SetRow(picker, 2);
             root.Children.Add(picker);
 
@@ -177,7 +182,71 @@ namespace LocalComents.UI
         /// A row of swatches, one per palette entry. Radio buttons rather than hand-rolled
         /// clickable borders so arrow-key navigation and screen readers work without extra code.
         /// </summary>
-        private UIElement BuildPalettePicker()
+        /// <summary>
+        /// Strength of the code highlight. Global by nature — see <see cref="HighlightOpacity"/> —
+        /// so the label says so rather than letting it read as a property of this comment.
+        /// </summary>
+        private UIElement BuildOpacityControl()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            var panel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(14, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+
+            var label = new TextBlock
+            {
+                Text = "Opacity (all):",
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 8, 0),
+            };
+            label.SetResourceReference(TextBlock.ForegroundProperty, VsBrushes.GrayTextKey);
+            panel.Children.Add(label);
+
+            var current = HighlightOpacity.GetPercent();
+
+            var value = new TextBlock
+            {
+                Text = current + "%",
+                MinWidth = 34,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(8, 0, 0, 0),
+            };
+            value.SetResourceReference(TextBlock.ForegroundProperty, VsBrushes.GrayTextKey);
+
+            var slider = new Slider
+            {
+                Minimum = HighlightOpacity.MinimumPercent,
+                Maximum = HighlightOpacity.MaximumPercent,
+                Value = current,
+                Width = 120,
+                // Snapped to 5% steps so dragging applies a handful of updates to the format map
+                // rather than one per pixel.
+                TickFrequency = 5,
+                IsSnapToTickEnabled = true,
+                VerticalAlignment = VerticalAlignment.Center,
+                ToolTip = "How strongly the highlight is painted behind the code, for every comment",
+            };
+
+            slider.ValueChanged += (_, e) =>
+            {
+                ThreadHelper.ThrowIfNotOnUIThread();
+
+                var percent = (int)Math.Round(e.NewValue);
+                value.Text = percent + "%";
+                HighlightOpacity.SetPercent(percent);
+            };
+
+            panel.Children.Add(slider);
+            panel.Children.Add(value);
+
+            return panel;
+        }
+
+        private StackPanel BuildPalettePicker()
         {
             var row = new StackPanel
             {

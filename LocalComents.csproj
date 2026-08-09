@@ -31,6 +31,14 @@
     <PackageReference Include="Microsoft.VSSDK.BuildTools" Version="18.8.739" />
     <!-- Newtonsoft.Json is shipped by Visual Studio itself, so it is not copied into the VSIX. -->
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" ExcludeAssets="runtime" />
+    <!--
+      Shipped in the VSIX, not left to the IDE. Visual Studio does host WebView2, but its copy is
+      not on the probing path an extension's assemblies resolve against: referencing this
+      compile-time only produced an extension that built fine and could not load the types at
+      runtime. ForceIncludeInVSIX is needed on top of that, because the VSSDK output groups
+      otherwise strip assemblies the IDE also ships.
+    -->
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2792.45" ForceIncludeInVSIX="true" />
   </ItemGroup>
   <ItemGroup>
     <!-- MEF attributes used by the editor components. -->
@@ -74,7 +82,36 @@
     <Content Include="Resources\PreviewImage.png">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
+    <!-- Rendered offline by the diagram window; MermaidPage looks for it under WebView\. -->
+    <Content Include="Resources\WebView\mermaid.min.js">
+      <IncludeInVSIX>true</IncludeInVSIX>
+      <VSIXSubPath>WebView</VSIXSubPath>
+    </Content>
   </ItemGroup>
+  <!--
+    WebView2Loader.dll is native, copied to the output by the WebView2 package's own targets rather
+    than tracked as a reference — so ForceIncludeInVSIX does not reach it, and the managed
+    Core assembly P/Invokes straight into it. Without this the VSIX ships the halves that cannot
+    work alone.
+  -->
+  <!--
+    ForceIncludeInVSIX brings the loader in under runtimes\<rid>\native, which is where a .NET
+    Core host would look for it. This extension is .NET Framework, which does no RID probing at
+    all — the managed Core assembly P/Invokes WebView2Loader.dll expecting it beside itself. So a
+    copy goes to the VSIX root, next to the assembly that calls into it.
+
+    No DependsOnTargets: the VSIX pipeline is itself reached from Build, so depending on Build here
+    closes a cycle. By the time GetVsixSourceItems runs, the copy-to-output phase has already run.
+  -->
+  <Target Name="AddWebView2LoaderToVsix" BeforeTargets="GetVsixSourceItems">
+    <PropertyGroup>
+      <_WebView2LoaderPath>$(OutDir)runtimes\win-x64\native\WebView2Loader.dll</_WebView2LoaderPath>
+    </PropertyGroup>
+    <ItemGroup>
+      <VSIXSourceItem Include="$(_WebView2LoaderPath)" Condition="Exists('$(_WebView2LoaderPath)')" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <VSCTCompile Include="LocalComentsPackage.vsct">
       <ResourceName>Menus.ctmenu</ResourceName>

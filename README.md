@@ -14,10 +14,12 @@ mesmo `.local-comments.json` pode ser usado pelos dois editores no mesmo reposit
 | Comentar seleção | Selecione o trecho e pressione `Alt+C`; sem seleção, comenta a linha inteira |
 | Texto inline no editor | O comentário aparece no fim da linha anotada (`💬 texto`), como um inline hint, usando a cor de comentário do tema atual |
 | Cor por comentário | No diálogo, escolha entre 6 cores da paleta; o realce, o marcador da margem, o texto inline e a linha no painel usam a cor escolhida |
-| Destaque no código | O trecho comentado fica realçado (cada cor é editável em *Tools > Options > Environment > Fonts and Colors*, itens **Local Comments Highlight - \<cor\>**) |
+| Destaque no código | O trecho comentado fica realçado com preenchimento translúcido, para o código continuar legível (cada cor é editável em *Tools > Options > Environment > Fonts and Colors*, itens **Local Comments Highlight - \<cor\>**) |
+| Opacidade do realce | Slider no diálogo do comentário, ao lado da cor. Vale para **todos** os comentários e é gravado no format map do editor — o mesmo lugar que o *Fonts and Colors* edita |
 | Marcador na margem | Um "balão" aparece na margem indicadora da linha; o tooltip mostra o texto |
 | Tooltip ao passar o mouse | Quick Info mostra o comentário, a data e um aviso quando o código mudou |
 | Painel lateral | *View > Other Windows > Local Comments* — busca, navegação, edição e exclusão |
+| Janela de diagrama | *View > Other Windows > Local Comments Diagram* — renderiza os diagramas Mermaid do `DOCUMENTATION.md` gerado pelo agente, atualizando quando o arquivo muda |
 | Sincronização externa | O arquivo JSON é monitorado; alterações feitas pelo VS Code aparecem automaticamente |
 
 ## Servidor MCP — documentação gerada por IA
@@ -43,6 +45,33 @@ Em *chat > + Add Reference > Prompts > MCP prompts*:
 - **`generate_documentation`** — lê os comentários, confere contra o código-fonte e gera um
   `DOCUMENTATION.md` com diagrama Mermaid em bloco ```mermaid.
 - **`review_open_questions`** — transforma TODOs e dúvidas anotadas em lista priorizada de ações.
+
+### Janela de diagrama
+
+*View > Other Windows > Local Comments Diagram* renderiza os blocos ```mermaid do documento que
+fica ao lado do arquivo de comentários.
+
+Quem escolhe o nome do arquivo é o agente, e ele nem sempre usa o padrão. Então a janela prefere
+`DOCUMENTATION.md` quando existe, e senão pega o `.md` mais recente da pasta **que contenha um
+diagrama** — exigir o diagrama é o que impede um README qualquer de ser adotado. O nome do arquivo
+escolhido aparece na barra de status da janela.
+
+A extensão **não gera** diagrama: ela mostra o que o agente escreveu. Quem produz o conteúdo é o
+prompt `generate_documentation` acima, e o arquivo é monitorado — rodar o prompt de novo redesenha
+a janela sozinha, sem precisar clicar em *Refresh*.
+
+O `mermaid.min.js` vai dentro do VSIX (~3,5 MB) e é renderizado localmente. Nenhum diagrama sai
+da máquina, o que seria contraditório numa extensão de anotações privadas.
+
+#### Por que o WebView2 não vai no pacote
+
+O `Microsoft.Web.WebView2` é referenciado com `ExcludeAssets="runtime"`, como o `Newtonsoft.Json`:
+o próprio Visual Studio hospeda WebView2, então essas assemblies já estão carregadas no `devenv` e
+o loader nativo já está à mão. Distribuir uma segunda cópia dentro do VSIX é justamente o que causa
+conflito de versão capaz de impedir o package inteiro de carregar.
+
+Se mesmo assim o WebView não subir, a janela não fica em branco: a página já foi renderizada em
+disco e o botão **Open in browser** a abre no navegador padrão.
 
 ### Instalação — nenhuma
 

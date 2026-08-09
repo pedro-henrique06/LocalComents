@@ -40,7 +40,8 @@ namespace LocalComents.Mcp
                      actually fits what the comments describe: `flowchart` for control flow,
                      `sequenceDiagram` for interaction between components, `classDiagram` for structure.
                      Do not force a diagram onto content that is not structural.
-                5. Call `write_documentation` with the finished Markdown.
+                5. Call `write_documentation` with the finished Markdown. Leave `fileName` unset —
+                   the default is what the Visual Studio diagram window looks for first.
 
                 Do not invent architecture that is not evidenced by the comments or the code. If the
                 comments are too sparse to document an area, say so explicitly instead of filling the gap.

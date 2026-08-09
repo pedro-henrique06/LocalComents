@@ -23,6 +23,7 @@ namespace LocalComents
     [ProvideMenuResource("Menus.ctmenu", 1)]
     [ProvideOptionPage(typeof(LocalComentsOptionsPage), "Local Comments", "General", 0, 0, true)]
     [ProvideToolWindow(typeof(CommentsToolWindow), Style = VsDockStyle.Tabbed, Window = SolutionExplorerGuid)]
+    [ProvideToolWindow(typeof(DiagramToolWindow), Style = VsDockStyle.Tabbed, Window = SolutionExplorerGuid)]
     [ProvideAutoLoad(VSConstants.UICONTEXT.SolutionExists_string, PackageAutoLoadFlags.BackgroundLoad)]
     [ProvideAutoLoad(VSConstants.UICONTEXT.NoSolution_string, PackageAutoLoadFlags.BackgroundLoad)]
     public sealed class LocalComentsPackage : AsyncPackage
@@ -59,15 +60,20 @@ namespace LocalComents
                 return;
             }
 
-            var commandId = new CommandID(PackageGuids.CmdSet, PackageIds.CmdIdOpenToolWindow);
-            commandService.AddCommand(new MenuCommand((_, _) => ShowToolWindow(), commandId));
+            commandService.AddCommand(new MenuCommand(
+                (_, _) => ShowToolWindow(typeof(CommentsToolWindow)),
+                new CommandID(PackageGuids.CmdSet, PackageIds.CmdIdOpenToolWindow)));
+
+            commandService.AddCommand(new MenuCommand(
+                (_, _) => ShowToolWindow(typeof(DiagramToolWindow)),
+                new CommandID(PackageGuids.CmdSet, PackageIds.CmdIdOpenDiagramWindow)));
         }
 
-        private void ShowToolWindow()
+        private void ShowToolWindow(Type toolWindowType)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
-            var window = FindToolWindow(typeof(CommentsToolWindow), 0, true);
+            var window = FindToolWindow(toolWindowType, 0, true);
             if (window?.Frame is IVsWindowFrame frame)
             {
                 ErrorHandler.ThrowOnFailure(frame.Show());
