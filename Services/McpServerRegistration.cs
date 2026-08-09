@@ -52,7 +52,7 @@ namespace LocalComents.Services
             // entry written by a previous install must not outlive the file it points at.
             var entry = enabled ? BuildEntry(storageFile) : null;
 
-            Apply(Path.Combine(solutionDirectory!, ".vs", "mcp.json"), entry);
+            Apply(Path.Combine(workspaceDirectory!, ".vs", "mcp.json"), entry);
         }
 
         /// <summary>
