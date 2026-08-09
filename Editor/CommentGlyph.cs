@@ -94,13 +94,17 @@ namespace LocalComents.Editor
                 return null;
             }
 
+            // With several comments on one line the margin only has room for one bubble, so it
+            // takes the first one's colour.
+            var palette = CommentPalette.Resolve(commentTag.Comments.Count > 0 ? commentTag.Comments[0].Color : null);
+
             var bubble = new Border
             {
                 Width = GlyphSize,
                 Height = GlyphSize,
                 CornerRadius = new CornerRadius(3, 3, 3, 0),
-                Background = new SolidColorBrush(Color.FromRgb(0xF5, 0xD1, 0x76)),
-                BorderBrush = new SolidColorBrush(Color.FromRgb(0xC9, 0x94, 0x18)),
+                Background = new SolidColorBrush(palette.Highlight),
+                BorderBrush = new SolidColorBrush(palette.Border),
                 BorderThickness = new Thickness(1),
                 ToolTip = BuildToolTip(commentTag.Comments),
             };

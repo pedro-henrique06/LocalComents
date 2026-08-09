@@ -175,13 +175,17 @@ namespace LocalComents.Editor
                 VerticalAlignment = VerticalAlignment.Center,
             };
 
+            // Tinted with the comment's colour, but faintly: this sits over code, so it has to
+            // stay legible rather than compete with the highlight on the line itself.
+            var palette = CommentPalette.Resolve(comments[0].Color);
+
             return new Border
             {
                 Child = block,
                 Height = lineTextHeight,
                 Padding = new Thickness(6, 0, 6, 0),
                 CornerRadius = new CornerRadius(3),
-                Background = new SolidColorBrush(Color.FromArgb(28, 0xF5, 0xD1, 0x76)),
+                Background = new SolidColorBrush(Color.FromArgb(28, palette.Highlight.R, palette.Highlight.G, palette.Highlight.B)),
             };
         }
 

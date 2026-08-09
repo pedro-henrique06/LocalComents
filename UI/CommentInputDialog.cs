@@ -1,11 +1,29 @@
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
+using LocalComents.Editor;
 using Microsoft.VisualStudio.PlatformUI;
 using Microsoft.VisualStudio.Shell;
 
 namespace LocalComents.UI
 {
+    /// <summary>What the user typed and picked, or <c>null</c> from the prompt when cancelled.</summary>
+    public sealed class CommentInput
+    {
+        public CommentInput(string text, string? colorId)
+        {
+            Text = text;
+            ColorId = colorId;
+        }
+
+        public string Text { get; }
+
+        /// <summary>Palette identifier, or <c>null</c> for the default colour.</summary>
+        public string? ColorId { get; }
+    }
+
     /// <summary>
     /// Themed prompt used to create or edit a comment. Built in code so the project keeps a
     /// single source of truth for the dialog and avoids a XAML/code-behind pair.
@@ -13,9 +31,12 @@ namespace LocalComents.UI
     public sealed class CommentInputDialog : DialogWindow
     {
         private readonly TextBox _input;
+        private string _colorId;
 
-        public CommentInputDialog(string title, string? anchorText, string initialText = "")
+        public CommentInputDialog(string title, string? anchorText, string initialText = "", string? initialColorId = null)
         {
+            _colorId = CommentPalette.Resolve(initialColorId).Id;
+
             Title = title;
 
             // Comments run to a couple of sentences, so the box is sized for prose and stays
@@ -40,6 +61,7 @@ namespace LocalComents.UI
 
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
             if (!string.IsNullOrWhiteSpace(anchorText))
@@ -71,6 +93,10 @@ namespace LocalComents.UI
             Grid.SetRow(_input, 1);
             root.Children.Add(_input);
 
+            var picker = BuildPalettePicker();
+            Grid.SetRow(picker, 2);
+            root.Children.Add(picker);
+
             var footer = new Grid { Margin = new Thickness(0, 12, 0, 0) };
             footer.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -99,7 +125,7 @@ namespace LocalComents.UI
             Grid.SetColumn(buttons, 1);
             footer.Children.Add(buttons);
 
-            Grid.SetRow(footer, 2);
+            Grid.SetRow(footer, 3);
             root.Children.Add(footer);
 
             Content = root;
@@ -129,16 +155,72 @@ namespace LocalComents.UI
 
         public string CommentText => _input.Text?.Trim() ?? string.Empty;
 
-        /// <summary>Shows the dialog and returns the typed text, or <c>null</c> when cancelled.</summary>
-        public static string? Prompt(string title, string? anchorText, string initialText = "")
+        /// <summary>Shows the dialog and returns what was entered, or <c>null</c> when cancelled.</summary>
+        public static CommentInput? Prompt(
+            string title,
+            string? anchorText,
+            string initialText = "",
+            string? initialColorId = null)
         {
-            var dialog = new CommentInputDialog(title, anchorText, initialText);
+            var dialog = new CommentInputDialog(title, anchorText, initialText, initialColorId);
             if (dialog.ShowModal() == true && !string.IsNullOrWhiteSpace(dialog.CommentText))
             {
-                return dialog.CommentText;
+                return new CommentInput(dialog.CommentText, CommentPalette.ToStoredValue(dialog._colorId));
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// A row of swatches, one per palette entry. Radio buttons rather than hand-rolled
+        /// clickable borders so arrow-key navigation and screen readers work without extra code.
+        /// </summary>
+        private UIElement BuildPalettePicker()
+        {
+            var row = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(0, 10, 0, 0),
+            };
+
+            var label = new TextBlock
+            {
+                Text = "Color:",
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 10, 0),
+            };
+            label.SetResourceReference(TextBlock.ForegroundProperty, VsBrushes.GrayTextKey);
+            row.Children.Add(label);
+
+            foreach (var entry in CommentPalette.Entries)
+            {
+                var swatch = new Border
+                {
+                    Width = 16,
+                    Height = 16,
+                    CornerRadius = new CornerRadius(3),
+                    Background = new SolidColorBrush(entry.Highlight),
+                    BorderBrush = new SolidColorBrush(entry.Border),
+                    BorderThickness = new Thickness(1),
+                };
+
+                var option = new RadioButton
+                {
+                    Content = swatch,
+                    GroupName = "LocalComentsCommentColor",
+                    ToolTip = entry.DisplayName,
+                    Tag = entry.Id,
+                    IsChecked = entry.Id == _colorId,
+                    VerticalContentAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 10, 0),
+                };
+                AutomationProperties.SetName(option, entry.DisplayName);
+                option.Checked += (sender, _) => _colorId = (string)((RadioButton)sender).Tag;
+
+                row.Children.Add(option);
+            }
+
+            return row;
         }
 
         private static string Truncate(string value, int max)

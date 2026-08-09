@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using LocalComents.Editor;
 using LocalComents.Models;
 using LocalComents.Services;
 using LocalComents.UI;
@@ -18,8 +19,6 @@ namespace LocalComents.ToolWindows
     /// </summary>
     public sealed class CommentsToolWindowControl : UserControl
     {
-        private static readonly Color AccentColor = Color.FromRgb(0xF5, 0xD1, 0x76);
-
         private readonly TextBox _search;
         private readonly StackPanel _list;
         private readonly TextBlock _status;
@@ -198,6 +197,11 @@ namespace LocalComents.ToolWindows
             ThreadHelper.ThrowIfNotOnUIThread();
 
             var range = comment.Range ?? new CommentRange();
+
+            // The pane is colour-coded the same way the editor is, so a comment is recognisable
+            // in both places without reading it.
+            var accent = CommentPalette.Resolve(comment.Color).Highlight;
+
             var texts = new StackPanel();
 
             var body = new TextBlock
@@ -230,7 +234,7 @@ namespace LocalComents.ToolWindows
                     CornerRadius = new CornerRadius(2),
                     Background = new SolidColorBrush(Color.FromArgb(24, 128, 128, 128)),
                     BorderThickness = new Thickness(2, 0, 0, 0),
-                    BorderBrush = new SolidColorBrush(Color.FromArgb(120, AccentColor.R, AccentColor.G, AccentColor.B)),
+                    BorderBrush = new SolidColorBrush(Color.FromArgb(120, accent.R, accent.G, accent.B)),
                 });
             }
 
@@ -273,14 +277,14 @@ namespace LocalComents.ToolWindows
                 Margin = new Thickness(0, 0, 0, 5),
                 CornerRadius = new CornerRadius(3),
                 BorderThickness = new Thickness(3, 1, 1, 1),
-                BorderBrush = new SolidColorBrush(AccentColor),
+                BorderBrush = new SolidColorBrush(accent),
                 Background = new SolidColorBrush(Color.FromArgb(18, 128, 128, 128)),
                 Cursor = Cursors.Hand,
                 ToolTip = "Click to go to this line",
             };
 
             container.MouseEnter += (_, _) =>
-                container.Background = new SolidColorBrush(Color.FromArgb(38, AccentColor.R, AccentColor.G, AccentColor.B));
+                container.Background = new SolidColorBrush(Color.FromArgb(38, accent.R, accent.G, accent.B));
             container.MouseLeave += (_, _) =>
                 container.Background = new SolidColorBrush(Color.FromArgb(18, 128, 128, 128));
 
@@ -375,10 +379,15 @@ namespace LocalComents.ToolWindows
 
         private void EditComment(string filePath, LocalComment comment)
         {
-            var text = CommentInputDialog.Prompt("Edit local comment", comment.Range?.SelectedText, comment.Text);
-            if (!string.IsNullOrWhiteSpace(text))
+            var input = CommentInputDialog.Prompt(
+                "Edit local comment",
+                comment.Range?.SelectedText,
+                comment.Text,
+                comment.Color);
+
+            if (input != null)
             {
-                CommentStore.Instance.Update(filePath, comment.Id, text!);
+                CommentStore.Instance.Update(filePath, comment.Id, input.Text, input.ColorId);
             }
         }
 
