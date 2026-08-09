@@ -32,6 +32,10 @@ jobs:
       #
       # mermaid.min.js is in the same boat: dropped from the package, the extension installs and
       # only the diagram window breaks, at the moment someone opens it.
+      #
+      # So are the WebView2 assemblies. Referencing them compile-time only produced a VSIX that
+      # built clean and could not load the types on a user's machine — the failure this assertion
+      # exists to catch, one build earlier.
       - name: Verify the MCP server is packaged
         shell: pwsh
         run: |
@@ -52,7 +56,10 @@ jobs:
             'MCP/ModelContextProtocol.Core.dll',
             'MCP/Newtonsoft.Json.dll',
             'MCP/System.Text.Json.dll',
-            'WebView/mermaid.min.js'
+            'WebView/mermaid.min.js',
+            'Microsoft.Web.WebView2.Core.dll',
+            'Microsoft.Web.WebView2.Wpf.dll',
+            'WebView2Loader.dll'
           )
 
           $missing = $required | Where-Object { $entries -notcontains $_ }

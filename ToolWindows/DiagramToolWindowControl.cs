@@ -33,6 +33,7 @@ namespace LocalComents.ToolWindows
 
         private WebView2? _webView;
         private bool _webViewUnavailable;
+        private string? _webViewFailure;
         private FileSystemWatcher? _watcher;
         private string? _pagePath;
 
@@ -194,9 +195,10 @@ namespace LocalComents.ToolWindows
                 // where a runtime that is absent or a version that will not bind surfaces. The
                 // rendered page is already on disk, so degrade to opening it externally instead
                 // of leaving the window blank.
-                LocalComentsLog.Write($"The WebView could not be initialised: {ex.Message}");
+                LocalComentsLog.Write($"The WebView could not be initialised: {ex}");
                 _webViewUnavailable = true;
                 _webView = null;
+                _webViewFailure = $"{ex.GetType().Name}: {ex.Message}";
 
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
                 ShowWebViewFallback();
@@ -235,9 +237,17 @@ namespace LocalComents.ToolWindows
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
+            // The reason is on screen rather than only in the trace log: the shipped VSIX is a
+            // Release build with no debugger attached, so a message written to Trace is a message
+            // nobody will ever read, and "not available" alone is not something anyone can act on.
+            var reason = _webViewFailure == null
+                ? string.Empty
+                : $"\n\nReason: {_webViewFailure}";
+
             ShowMessage(
                 "The embedded browser is not available in this Visual Studio instance.\n\n" +
-                "The diagram was still rendered — use \"Open in browser\" above to view it.");
+                "The diagram was still rendered — use \"Open in browser\" above to view it." +
+                reason);
         }
 
         private void OpenInBrowser()

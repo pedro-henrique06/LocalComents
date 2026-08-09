@@ -32,12 +32,13 @@
     <!-- Newtonsoft.Json is shipped by Visual Studio itself, so it is not copied into the VSIX. -->
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" ExcludeAssets="runtime" />
     <!--
-      Compile-time only, like Newtonsoft: Visual Studio hosts WebView2 itself, so devenv already
-      has these assemblies loaded and the native loader on hand. Shipping a second copy inside the
-      VSIX is what causes the version conflicts that keep a package from loading at all — and the
-      diagram window degrades to opening the rendered page in a browser if the runtime is absent.
+      Shipped in the VSIX, not left to the IDE. Visual Studio does host WebView2, but its copy is
+      not on the probing path an extension's assemblies resolve against: referencing this
+      compile-time only produced an extension that built fine and could not load the types at
+      runtime. ForceIncludeInVSIX is needed on top of that, because the VSSDK output groups
+      otherwise strip assemblies the IDE also ships.
     -->
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2792.45" ExcludeAssets="runtime" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2792.45" ForceIncludeInVSIX="true" />
   </ItemGroup>
   <ItemGroup>
     <!-- MEF attributes used by the editor components. -->
@@ -87,6 +88,18 @@
       <VSIXSubPath>WebView</VSIXSubPath>
     </Content>
   </ItemGroup>
+  <!--
+    WebView2Loader.dll is native, copied to the output by the WebView2 package's own targets rather
+    than tracked as a reference — so ForceIncludeInVSIX does not reach it, and the managed
+    Core assembly P/Invokes straight into it. Without this the VSIX ships the halves that cannot
+    work alone.
+  -->
+  <Target Name="AddWebView2LoaderToVsix" BeforeTargets="GetVsixSourceItems" DependsOnTargets="Build">
+    <ItemGroup>
+      <VSIXSourceItem Include="$(OutDir)WebView2Loader.dll" Condition="Exists('$(OutDir)WebView2Loader.dll')" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <VSCTCompile Include="LocalComentsPackage.vsct">
       <ResourceName>Menus.ctmenu</ResourceName>
