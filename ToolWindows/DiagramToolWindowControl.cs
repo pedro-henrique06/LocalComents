@@ -109,10 +109,16 @@ namespace LocalComents.ToolWindows
 
             if (!File.Exists(documentPath))
             {
+                // The path is part of the message on purpose: if the storage location is set to
+                // User or Custom, the document lands somewhere the reader would not think to look,
+                // and an empty window with no path is indistinguishable from a broken one.
                 ShowMessage(
-                    $"No {MermaidDocument.DefaultFileName} next to the comments file yet.\n\n" +
+                    $"No {MermaidDocument.DefaultFileName} yet.\n\n" +
                     "In Copilot Chat (Agent mode), run the MCP prompt \"generate_documentation\" — " +
-                    "it writes the document and the diagram appears here.");
+                    "it writes the document and the diagram appears here.\n\n" +
+                    $"Looking for: {documentPath}");
+
+                _status.Text = $"Waiting for {documentPath}";
                 return;
             }
 
