@@ -60,9 +60,23 @@ jobs:
 
           Write-Host "OK - $($entries.Count) entries, MCP server packaged with its dependencies."
 
+      # The artifact name carries the version, because the one thing you need to know when
+      # picking a build off the Actions list is which release it is -- and every run otherwise
+      # produces an identically named artifact.
+      - name: Read the packaged version
+        id: vsix
+        shell: pwsh
+        run: |
+          [xml]$manifest = Get-Content 'source.extension.vsixmanifest'
+          $version = $manifest.PackageManifest.Metadata.Identity.Version
+          if (-not $version) { throw 'No version found in source.extension.vsixmanifest.' }
+          $short = "${{ github.sha }}".Substring(0, 7)
+          Write-Host "Packaged version: $version ($short)"
+          "name=LocalComents-$version-$short" >> $env:GITHUB_OUTPUT
+
       - name: Upload VSIX
         uses: actions/upload-artifact@v4
         with:
-          name: LocalComents-vsix
+          name: ${{ steps.vsix.outputs.name }}
           path: bin/Release/net472/LocalComents.vsix
           if-no-files-found: error

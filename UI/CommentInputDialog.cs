@@ -53,11 +53,13 @@ namespace LocalComents.UI
             HasMaximizeButton = false;
             HasMinimizeButton = false;
 
-            var root = new Grid { Margin = new Thickness(12) };
-            // Panel.BackgroundProperty, not the inherited Control.BackgroundProperty: they are
-            // distinct dependency properties and a Grid paints itself from the former.
-            root.SetResourceReference(Panel.BackgroundProperty, VsBrushes.WindowKey);
+            // The window's own background, not just the content's: the root Grid is inset by 12px,
+            // and without this the default white shows through as a border around the themed
+            // content — which is what made the dialog look foreign to the IDE.
+            SetResourceReference(BackgroundProperty, VsBrushes.WindowKey);
             SetResourceReference(ForegroundProperty, VsBrushes.WindowTextKey);
+
+            var root = new Grid { Margin = new Thickness(12) };
 
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
