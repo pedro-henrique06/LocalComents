@@ -15,6 +15,7 @@ mesmo `.local-comments.json` pode ser usado pelos dois editores no mesmo reposit
 | Texto inline no editor | O comentário aparece no fim da linha anotada (`💬 texto`), como um inline hint, usando a cor de comentário do tema atual |
 | Cor por comentário | No diálogo, escolha entre 6 cores da paleta; o realce, o marcador da margem, o texto inline e a linha no painel usam a cor escolhida |
 | Destaque no código | O trecho comentado fica realçado com preenchimento translúcido, para o código continuar legível (cada cor é editável em *Tools > Options > Environment > Fonts and Colors*, itens **Local Comments Highlight - \<cor\>**) |
+| Opacidade do realce | Slider no diálogo do comentário, ao lado da cor. Vale para **todos** os comentários e é gravado no format map do editor — o mesmo lugar que o *Fonts and Colors* edita |
 | Marcador na margem | Um "balão" aparece na margem indicadora da linha; o tooltip mostra o texto |
 | Tooltip ao passar o mouse | Quick Info mostra o comentário, a data e um aviso quando o código mudou |
 | Painel lateral | *View > Other Windows > Local Comments* — busca, navegação, edição e exclusão |
