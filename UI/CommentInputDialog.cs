@@ -36,6 +36,9 @@ namespace LocalComents.UI
 
         public CommentInputDialog(string title, string? anchorText, string initialText = "", string? initialColorId = null)
         {
+            // The opacity control reads the editor's format map, which is main-thread only.
+            ThreadHelper.ThrowIfNotOnUIThread();
+
             _colorId = CommentPalette.Resolve(initialColorId).Id;
 
             Title = title;

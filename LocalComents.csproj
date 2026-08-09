@@ -94,7 +94,12 @@
     Core assembly P/Invokes straight into it. Without this the VSIX ships the halves that cannot
     work alone.
   -->
-  <Target Name="AddWebView2LoaderToVsix" BeforeTargets="GetVsixSourceItems" DependsOnTargets="Build">
+  <!--
+    No DependsOnTargets: the VSIX pipeline is itself reached from Build, so depending on Build here
+    closes a cycle. By the time GetVsixSourceItems runs, the copy-to-output phase has already put
+    the loader in OutDir.
+  -->
+  <Target Name="AddWebView2LoaderToVsix" BeforeTargets="GetVsixSourceItems">
     <ItemGroup>
       <VSIXSourceItem Include="$(OutDir)WebView2Loader.dll" Condition="Exists('$(OutDir)WebView2Loader.dll')" />
     </ItemGroup>
