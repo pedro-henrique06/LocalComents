@@ -50,15 +50,16 @@ namespace LocalComents.Commands
             }
 
             var range = BuildRange(view, out var anchorText);
-            var text = CommentInputDialog.Prompt("Add local comment", anchorText);
-            if (string.IsNullOrWhiteSpace(text))
+            var input = CommentInputDialog.Prompt("Add local comment", anchorText);
+            if (input == null)
             {
                 return;
             }
 
             var comment = new LocalComment
             {
-                Text = text!,
+                Text = input.Text,
+                Color = input.ColorId,
                 Timestamp = LocalComment.NowTimestamp(),
                 Range = range,
             };

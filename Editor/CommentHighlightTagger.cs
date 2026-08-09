@@ -1,20 +1,16 @@
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
-using System.Windows.Media;
 using LocalComents.Services;
 using Microsoft.VisualStudio.Text;
-using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Utilities;
 
 namespace LocalComents.Editor
 {
-    /// <summary>Highlights the code covered by a local comment.</summary>
+    /// <summary>Highlights the code covered by a local comment, in the comment's own colour.</summary>
     internal sealed class CommentHighlightTagger : CommentTaggerBase<TextMarkerTag>
     {
-        private static readonly TextMarkerTag Tag = new TextMarkerTag(LocalCommentMarkerFormat.Name);
-
         public CommentHighlightTagger(ITextBuffer buffer)
             : base(buffer)
         {
@@ -37,7 +33,7 @@ namespace LocalComents.Editor
 
                 if (CommentSpanMapper.TryGetSpan(snapshot, comment, out var span) && spans.IntersectsWith(span))
                 {
-                    yield return new TagSpan<TextMarkerTag>(span, Tag);
+                    yield return new TagSpan<TextMarkerTag>(span, CommentPalette.Resolve(comment.Color).MarkerTag);
                 }
             }
         }
@@ -59,22 +55,6 @@ namespace LocalComents.Editor
 
             return buffer.Properties.GetOrCreateSingletonProperty(
                 () => new CommentHighlightTagger(buffer)) as ITagger<T>;
-        }
-    }
-
-    [Export(typeof(EditorFormatDefinition))]
-    [Name(Name)]
-    [UserVisible(true)]
-    internal sealed class LocalCommentMarkerFormat : MarkerFormatDefinition
-    {
-        public const string Name = "LocalComents.CommentMarker";
-
-        public LocalCommentMarkerFormat()
-        {
-            BackgroundColor = Color.FromRgb(0xF5, 0xD1, 0x76);
-            ForegroundColor = Color.FromRgb(0xC9, 0x94, 0x18);
-            DisplayName = "Local Comments Highlight";
-            ZOrder = 5;
         }
     }
 }

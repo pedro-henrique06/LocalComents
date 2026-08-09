@@ -118,7 +118,7 @@ namespace LocalComents.Services
             SaveAndNotify(key);
         }
 
-        public void Update(string filePath, string commentId, string newText)
+        public void Update(string filePath, string commentId, string newText, string? newColor)
         {
             var key = Normalize(filePath);
             lock (_gate)
@@ -135,6 +135,7 @@ namespace LocalComents.Services
                 }
 
                 existing.Text = newText;
+                existing.Color = newColor;
                 existing.Timestamp = LocalComment.NowTimestamp();
             }
 

@@ -132,6 +132,9 @@ namespace LocalComents.Mcp
                         .Select(c => new
                         {
                             text = c.Text,
+                            // Users colour-code by meaning (red for bugs, green for done...), so the
+                            // colour is a grouping signal worth handing to the agent.
+                            color = c.Color,
                             // Stored zero-based to stay compatible with VS Code; surfaced one-based.
                             line = (c.Range?.StartLine ?? 0) + 1,
                             endLine = (c.Range?.EndLine ?? 0) + 1,

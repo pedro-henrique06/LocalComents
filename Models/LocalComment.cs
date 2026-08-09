@@ -23,6 +23,18 @@ namespace LocalComents.Models
         [JsonProperty("range")]
         public CommentRange Range { get; set; } = new CommentRange();
 
+        /// <summary>
+        /// Palette entry this comment is drawn with, or <c>null</c> for the default. Kept as a
+        /// plain identifier rather than an RGB value so the meaning survives a theme change, and
+        /// so this file stays free of UI types — it is shared with the MCP server project.
+        /// <para>
+        /// An extra property is ignored by the VS Code extension when it reads the file, but it
+        /// is dropped if VS Code rewrites that comment.
+        /// </para>
+        /// </summary>
+        [JsonProperty("color")]
+        public string? Color { get; set; }
+
         [JsonIgnore]
         public DateTime CreatedAtLocal =>
             Timestamp <= 0

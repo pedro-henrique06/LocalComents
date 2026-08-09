@@ -110,6 +110,14 @@ namespace LocalComents.Editor
                 return;
             }
 
+            // With word wrap on, a buffer line is rendered as several ITextViewLines that all map
+            // back to the same line number. Drawing on each would repeat the hint mid-code; the
+            // annotation belongs after the end of the whole logical line.
+            if (!line.IsLastTextViewLineForSnapshotLine)
+            {
+                return;
+            }
+
             var snapshot = _view.TextSnapshot;
             var comments = CommentsOnLine(snapshot, line);
             if (comments.Count == 0)
@@ -117,11 +125,14 @@ namespace LocalComents.Editor
                 return;
             }
 
-            var element = BuildElement(comments);
-            element.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            // Sized to the line's text band and pinned to its top, so the hint sits on the code it
+            // annotates whatever the line spacing is. Deriving the offset from the element's own
+            // DesiredSize instead would drift, because Height covers the line spacing that TextTop
+            // excludes -- the two are not measured from the same edge.
+            var element = BuildElement(comments, line.TextHeight);
 
             Canvas.SetLeft(element, line.TextRight + 24);
-            Canvas.SetTop(element, line.TextTop + Math.Max(0, (line.Height - element.DesiredSize.Height) / 2));
+            Canvas.SetTop(element, line.TextTop);
 
             var span = new SnapshotSpan(line.Start, line.End);
             _layer.AddAdornment(AdornmentPositioningBehavior.TextRelative, span, LayerName, element, null);
@@ -144,7 +155,7 @@ namespace LocalComents.Editor
                 .ToArray();
         }
 
-        private UIElement BuildElement(IReadOnlyList<LocalComment> comments)
+        private FrameworkElement BuildElement(IReadOnlyList<LocalComment> comments, double lineTextHeight)
         {
             var text = string.Join("  •  ", comments.Select(c => Flatten(c.Text)));
             if (text.Length > MaxInlineLength)
@@ -161,14 +172,20 @@ namespace LocalComents.Editor
                 Foreground = GetInlineBrush(),
                 ToolTip = string.Join(Environment.NewLine + Environment.NewLine, comments.Select(c => c.Text)),
                 IsHitTestVisible = true,
+                VerticalAlignment = VerticalAlignment.Center,
             };
+
+            // Tinted with the comment's colour, but faintly: this sits over code, so it has to
+            // stay legible rather than compete with the highlight on the line itself.
+            var palette = CommentPalette.Resolve(comments[0].Color);
 
             return new Border
             {
                 Child = block,
+                Height = lineTextHeight,
                 Padding = new Thickness(6, 0, 6, 0),
                 CornerRadius = new CornerRadius(3),
-                Background = new SolidColorBrush(Color.FromArgb(28, 0xF5, 0xD1, 0x76)),
+                Background = new SolidColorBrush(Color.FromArgb(28, palette.Highlight.R, palette.Highlight.G, palette.Highlight.B)),
             };
         }
 

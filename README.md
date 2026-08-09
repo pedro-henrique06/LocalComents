@@ -13,7 +13,8 @@ mesmo `.local-comments.json` pode ser usado pelos dois editores no mesmo reposit
 | Adicionar comentário | `Alt+C` no editor (ou botão direito → *Add Local Comment*) |
 | Comentar seleção | Selecione o trecho e pressione `Alt+C`; sem seleção, comenta a linha inteira |
 | Texto inline no editor | O comentário aparece no fim da linha anotada (`💬 texto`), como um inline hint, usando a cor de comentário do tema atual |
-| Destaque no código | O trecho comentado fica realçado (cor editável em *Tools > Options > Environment > Fonts and Colors*, item **Local Comments Highlight**) |
+| Cor por comentário | No diálogo, escolha entre 6 cores da paleta; o realce, o marcador da margem, o texto inline e a linha no painel usam a cor escolhida |
+| Destaque no código | O trecho comentado fica realçado (cada cor é editável em *Tools > Options > Environment > Fonts and Colors*, itens **Local Comments Highlight - \<cor\>**) |
 | Marcador na margem | Um "balão" aparece na margem indicadora da linha; o tooltip mostra o texto |
 | Tooltip ao passar o mouse | Quick Info mostra o comentário, a data e um aviso quando o código mudou |
 | Painel lateral | *View > Other Windows > Local Comments* — busca, navegação, edição e exclusão |
@@ -31,7 +32,7 @@ não embute nenhuma chamada de LLM nem gerencia API key.
 | Tool | O que faz |
 | --- | --- |
 | `list_files_with_comments` | Panorama: quais arquivos têm anotações e quantas |
-| `get_comments` | Comentários com texto, linha (base 1) e o trecho de código ancorado |
+| `get_comments` | Comentários com texto, cor, linha (base 1) e o trecho de código ancorado |
 | `search_comments` | Busca textual, para trazer só as anotações de um assunto |
 | `write_documentation` | Grava o Markdown final ao lado do arquivo de comentários |
 
@@ -125,6 +126,7 @@ Idêntico ao da extensão do VS Code (linhas e colunas **base zero**):
     {
       "id": "a1b2c3",
       "text": "Isso aqui precisa de refactor",
+      "color": "red",
       "timestamp": 1755698292758,
       "range": {
         "startLine": 41,
@@ -140,6 +142,21 @@ Idêntico ao da extensão do VS Code (linhas e colunas **base zero**):
 
 `endCharacter: 9007199254740991` (o `Number.MAX_SAFE_INTEGER` do JavaScript) significa
 "até o fim da linha", convenção herdada do VS Code.
+
+#### O campo `color`
+
+Guarda um identificador da paleta — `yellow`, `orange`, `red`, `green`, `blue` ou `purple` — e não
+um valor RGB, para que a cor continue fazendo sentido depois de trocar de tema ou de editar a
+paleta em *Fonts and Colors*. Um identificador desconhecido cai no padrão em vez de descartar o
+comentário.
+
+A propriedade é **omitida** quando a cor é a padrão (`yellow`), então arquivos criados antes desta
+versão continuam byte a byte iguais.
+
+> Este é o único ponto em que o formato se afasta do da extensão do VS Code. Ela ignora a
+> propriedade ao ler, mas **descarta** a cor se reescrever aquele comentário. Anotar pelos dois
+> editores no mesmo arquivo continua funcionando; só a cor não sobrevive a uma edição feita pelo
+> VS Code.
 
 ## Arquitetura
 
