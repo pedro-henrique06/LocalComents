@@ -9,7 +9,9 @@ using LocalComents.Editor;
 using LocalComents.Models;
 using LocalComents.Services;
 using LocalComents.UI;
+using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
+using Microsoft.VisualStudio.Shell.Interop;
 
 namespace LocalComents.ToolWindows
 {
@@ -393,13 +395,21 @@ namespace LocalComents.ToolWindows
 
         private void DeleteComment(string filePath, LocalComment comment)
         {
-            var answer = MessageBox.Show(
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            // VsShellUtilities rather than System.Windows.MessageBox: a WPF message box raised
+            // without an owner is not parented to the shell, so it can open behind the IDE. The
+            // click then looks like it did nothing, because the prompt nobody answered is what
+            // the deletion is waiting on.
+            var answer = VsShellUtilities.ShowMessageBox(
+                ServiceProvider.GlobalProvider,
                 "Delete this local comment?",
                 "Local Comments",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
+                OLEMSGICON.OLEMSGICON_QUERY,
+                OLEMSGBUTTON.OLEMSGBUTTON_YESNO,
+                OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_SECOND);
 
-            if (answer == MessageBoxResult.Yes)
+            if (answer == (int)VSConstants.MessageBoxResult.IDYES)
             {
                 CommentStore.Instance.Remove(filePath, comment.Id);
             }
