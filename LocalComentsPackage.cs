@@ -117,6 +117,20 @@ namespace LocalComents
             }
         }
 
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // The registration points at an executable inside this extension's folder, and
+                // nothing of ours runs once the extension is uninstalled. Taking it out here is
+                // the last chance to avoid leaving Visual Studio pointed at a path that is about
+                // to disappear; the next solution load writes it back.
+                McpServerRegistration.RemoveAll();
+            }
+
+            base.Dispose(disposing);
+        }
+
         private string? GetSolutionFolder()
         {
             ThreadHelper.ThrowIfNotOnUIThread();

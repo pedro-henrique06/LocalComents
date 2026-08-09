@@ -77,6 +77,23 @@ arquivo só é reescrito quando algo de fato muda (salvar reinicia o agent do Co
 *Register the MCP server for this solution* nas opções, a entrada é removida e o arquivo volta ao
 que era. `.vs\` já é ignorado pelo Git por convenção, então nada disso entra no repositório.
 
+#### Ciclo de vida da entrada
+
+O `command` aponta para dentro da pasta de instalação da extensão, então a entrada não pode
+sobreviver à extensão — o Visual Studio ficaria tentando subir um executável que não existe mais.
+Como nada do nosso código roda depois de uma desinstalação, a limpeza acontece antes:
+
+- **Ao fechar o Visual Studio**, o package remove a entrada de todos os `.vs\mcp.json` em que
+  escreveu na sessão. A próxima abertura da solução escreve de volta, idêntica — o *trust baseline*
+  que o VS guarda para o servidor não é perturbado.
+- **Ao abrir uma solução**, se o executável não for encontrado ao lado da extensão, a entrada é
+  **removida** em vez de mantida. É a auto-cura para o caso de o VS ter sido fechado à força e não
+  ter passado pela limpeza acima.
+
+Sobra um caso que a extensão não tem como cobrir: fechar o VS de forma anormal **e** desinstalar em
+seguida. A entrada órfã fica, e o VS mostra aquele servidor como falho. É inerte para o resto —
+apagar a pasta `.vs\` resolve.
+
 Depois de instalar, é só ativar as tools no ícone de chave inglesa do chat em modo *Agent* — elas
 vêm desabilitadas por padrão, comportamento do VS para qualquer servidor MCP.
 

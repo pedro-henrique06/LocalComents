@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -27,6 +29,13 @@ namespace LocalComents.Services
         private static readonly string RelativeServerPath = Path.Combine("MCP", "LocalComents.Mcp.exe");
 
         /// <summary>
+        /// Every config file this session has written an entry into. Tracked so all of them can be
+        /// cleaned up on shutdown, not just whichever solution happened to be open last.
+        /// </summary>
+        private static readonly HashSet<string> RegisteredConfigPaths =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
         /// Brings <c>.vs\mcp.json</c> in line with the current configuration. Adds or updates our
         /// entry when <paramref name="enabled"/>, removes it otherwise, and leaves any other
         /// server in the file untouched. Does nothing when no solution is open.
@@ -38,8 +47,41 @@ namespace LocalComents.Services
                 return;
             }
 
-            var configPath = Path.Combine(solutionDirectory!, ".vs", "mcp.json");
+            // Dropped rather than merely skipped when the server executable cannot be found: an
+            // entry written by a previous install must not outlive the file it points at.
+            var entry = enabled ? BuildEntry(storageFile) : null;
 
+            Apply(Path.Combine(solutionDirectory!, ".vs", "mcp.json"), entry);
+        }
+
+        /// <summary>
+        /// Takes our entry back out of every file it was written to.
+        /// <para>
+        /// Called as the package is disposed, because nothing of ours runs once the extension is
+        /// uninstalled — a registration left behind would point Visual Studio at an executable that
+        /// no longer exists. The entry is rewritten unchanged on the next solution load, so the
+        /// trust baseline Visual Studio keeps for the server is not disturbed.
+        /// </para>
+        /// This only touches the file, never a shell service, so it is safe during shutdown.
+        /// </summary>
+        public static void RemoveAll()
+        {
+            string[] paths;
+            lock (RegisteredConfigPaths)
+            {
+                paths = RegisteredConfigPaths.ToArray();
+                RegisteredConfigPaths.Clear();
+            }
+
+            foreach (var path in paths)
+            {
+                Apply(path, null);
+            }
+        }
+
+        /// <summary>Merges <paramref name="entry"/> into the file, or removes ours when it is <c>null</c>.</summary>
+        private static void Apply(string configPath, JObject? entry)
+        {
             try
             {
                 var document = Read(configPath);
@@ -52,14 +94,8 @@ namespace LocalComents.Services
 
                 var before = document.DeepClone();
 
-                if (enabled)
+                if (entry != null)
                 {
-                    var entry = BuildEntry(storageFile);
-                    if (entry == null)
-                    {
-                        return;
-                    }
-
                     var servers = document[ServersProperty] as JObject;
                     if (servers == null)
                     {
@@ -74,6 +110,8 @@ namespace LocalComents.Services
                     (document[ServersProperty] as JObject)?.Remove(ServerName);
                 }
 
+                Track(configPath, entry != null);
+
                 if (JToken.DeepEquals(before, document))
                 {
                     // Saving an unchanged file would still restart the Copilot agent, so skip it.
@@ -85,6 +123,21 @@ namespace LocalComents.Services
             catch (Exception ex)
             {
                 LocalComentsLog.Write($"Failed to update '{configPath}': {ex.Message}");
+            }
+        }
+
+        private static void Track(string configPath, bool registered)
+        {
+            lock (RegisteredConfigPaths)
+            {
+                if (registered)
+                {
+                    RegisteredConfigPaths.Add(configPath);
+                }
+                else
+                {
+                    RegisteredConfigPaths.Remove(configPath);
+                }
             }
         }
 
@@ -143,7 +196,8 @@ namespace LocalComents.Services
             var executable = ResolveServerExecutable();
             if (executable == null)
             {
-                LocalComentsLog.Write("The bundled MCP server was not found next to the extension; skipping registration.");
+                LocalComentsLog.Write(
+                    "The bundled MCP server was not found next to the extension; removing any existing registration.");
                 return null;
             }
 
