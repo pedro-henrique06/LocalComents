@@ -48,8 +48,13 @@ Em *chat > + Add Reference > Prompts > MCP prompts*:
 
 ### Janela de diagrama
 
-*View > Other Windows > Local Comments Diagram* renderiza os blocos ```mermaid do
-`DOCUMENTATION.md` que fica ao lado do arquivo de comentários.
+*View > Other Windows > Local Comments Diagram* renderiza os blocos ```mermaid do documento que
+fica ao lado do arquivo de comentários.
+
+Quem escolhe o nome do arquivo é o agente, e ele nem sempre usa o padrão. Então a janela prefere
+`DOCUMENTATION.md` quando existe, e senão pega o `.md` mais recente da pasta **que contenha um
+diagrama** — exigir o diagrama é o que impede um README qualquer de ser adotado. O nome do arquivo
+escolhido aparece na barra de status da janela.
 
 A extensão **não gera** diagrama: ela mostra o que o agente escreveu. Quem produz o conteúdo é o
 prompt `generate_documentation` acima, e o arquivo é monitorado — rodar o prompt de novo redesenha

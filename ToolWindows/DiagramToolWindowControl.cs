@@ -98,27 +98,28 @@ namespace LocalComents.ToolWindows
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
-            var documentPath = MermaidDocument.ResolvePath();
-            if (documentPath == null)
+            var folder = MermaidDocument.ResolveFolder();
+            if (folder == null)
             {
-                ShowMessage("Open a solution or folder first — the document is looked up next to the comments file.");
+                ShowMessage("Open a solution or folder first — documents are looked up next to the comments file.");
                 return;
             }
 
-            StartWatching(documentPath);
+            StartWatching(folder);
 
-            if (!File.Exists(documentPath))
+            var documentPath = MermaidDocument.FindDocument(folder);
+            if (documentPath == null)
             {
-                // The path is part of the message on purpose: if the storage location is set to
-                // User or Custom, the document lands somewhere the reader would not think to look,
+                // The folder is part of the message on purpose: with the storage location set to
+                // User or Custom the document lands somewhere the reader would not think to look,
                 // and an empty window with no path is indistinguishable from a broken one.
                 ShowMessage(
-                    $"No {MermaidDocument.DefaultFileName} yet.\n\n" +
+                    "No Markdown with a mermaid diagram here yet.\n\n" +
                     "In Copilot Chat (Agent mode), run the MCP prompt \"generate_documentation\" — " +
                     "it writes the document and the diagram appears here.\n\n" +
-                    $"Looking for: {documentPath}");
+                    $"Looking in: {folder}");
 
-                _status.Text = $"Waiting for {documentPath}";
+                _status.Text = $"Waiting for a document in {folder}";
                 return;
             }
 
@@ -273,17 +274,18 @@ namespace LocalComents.ToolWindows
             };
         }
 
-        private void StartWatching(string documentPath)
+        /// <summary>
+        /// Watches every Markdown file in the folder, not one name: the agent picks the file name,
+        /// so a watcher bound to one would miss the document that actually gets written.
+        /// </summary>
+        private void StartWatching(string folder)
         {
-            var folder = Path.GetDirectoryName(documentPath);
             if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
             {
                 return;
             }
 
-            if (_watcher != null
-                && string.Equals(_watcher.Path, folder, StringComparison.OrdinalIgnoreCase)
-                && string.Equals(_watcher.Filter, Path.GetFileName(documentPath), StringComparison.OrdinalIgnoreCase))
+            if (_watcher != null && string.Equals(_watcher.Path, folder, StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
@@ -292,7 +294,7 @@ namespace LocalComents.ToolWindows
 
             try
             {
-                _watcher = new FileSystemWatcher(folder!, Path.GetFileName(documentPath))
+                _watcher = new FileSystemWatcher(folder, "*.md")
                 {
                     NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size,
                     EnableRaisingEvents = true,

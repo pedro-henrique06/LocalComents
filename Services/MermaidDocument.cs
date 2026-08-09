@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace LocalComents.Services
@@ -19,11 +20,8 @@ namespace LocalComents.Services
         /// <summary>Default name written by <c>write_documentation</c>.</summary>
         public const string DefaultFileName = "DOCUMENTATION.md";
 
-        /// <summary>
-        /// The document to render: <c>DOCUMENTATION.md</c> beside the comments storage file.
-        /// Returns <c>null</c> when no storage file is configured.
-        /// </summary>
-        public static string? ResolvePath()
+        /// <summary>The folder documents are written to — the one holding the comments file.</summary>
+        public static string? ResolveFolder()
         {
             var storagePath = CommentStore.Instance.StoragePath;
             if (string.IsNullOrWhiteSpace(storagePath))
@@ -32,9 +30,73 @@ namespace LocalComents.Services
             }
 
             var folder = Path.GetDirectoryName(storagePath);
-            return string.IsNullOrEmpty(folder)
-                ? null
-                : Path.Combine(folder!, DefaultFileName);
+            return string.IsNullOrEmpty(folder) ? null : folder;
+        }
+
+        /// <summary>
+        /// The document to render, or <c>null</c> when the folder holds none.
+        /// <para>
+        /// <c>DefaultFileName</c> wins when it is there, but the agent chooses the file name and
+        /// does not always take the default — so any Markdown in the folder carrying a diagram
+        /// counts, most recently written first. Requiring a diagram is what keeps an unrelated
+        /// README from being picked up.
+        /// </para>
+        /// </summary>
+        public static string? FindDocument(string folder)
+        {
+            if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
+            {
+                return null;
+            }
+
+            var preferred = Path.Combine(folder, DefaultFileName);
+            if (ContainsDiagram(preferred))
+            {
+                return preferred;
+            }
+
+            try
+            {
+                return Directory.GetFiles(folder, "*.md", SearchOption.TopDirectoryOnly)
+                    .Select(path => new FileInfo(path))
+                    .OrderByDescending(file => file.LastWriteTimeUtc)
+                    .Select(file => file.FullName)
+                    .FirstOrDefault(ContainsDiagram);
+            }
+            catch (Exception ex)
+            {
+                LocalComentsLog.Write($"Could not scan '{folder}' for documents: {ex.Message}");
+                return null;
+            }
+        }
+
+        private static bool ContainsDiagram(string path)
+        {
+            try
+            {
+                if (!File.Exists(path))
+                {
+                    return false;
+                }
+
+                // Generated documentation is prose; anything this large is not it, and reading it
+                // on every refresh would be the expensive part of opening the window.
+                if (new FileInfo(path).Length > 2 * 1024 * 1024)
+                {
+                    return false;
+                }
+
+                return ExtractDiagrams(File.ReadAllText(path)).Count > 0;
+            }
+            catch (IOException)
+            {
+                // Being written right now; the watcher will bring us back.
+                return false;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return false;
+            }
         }
 
         /// <summary>
