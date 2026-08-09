@@ -95,13 +95,20 @@
     work alone.
   -->
   <!--
+    ForceIncludeInVSIX brings the loader in under runtimes\<rid>\native, which is where a .NET
+    Core host would look for it. This extension is .NET Framework, which does no RID probing at
+    all — the managed Core assembly P/Invokes WebView2Loader.dll expecting it beside itself. So a
+    copy goes to the VSIX root, next to the assembly that calls into it.
+
     No DependsOnTargets: the VSIX pipeline is itself reached from Build, so depending on Build here
-    closes a cycle. By the time GetVsixSourceItems runs, the copy-to-output phase has already put
-    the loader in OutDir.
+    closes a cycle. By the time GetVsixSourceItems runs, the copy-to-output phase has already run.
   -->
   <Target Name="AddWebView2LoaderToVsix" BeforeTargets="GetVsixSourceItems">
+    <PropertyGroup>
+      <_WebView2LoaderPath>$(OutDir)runtimes\win-x64\native\WebView2Loader.dll</_WebView2LoaderPath>
+    </PropertyGroup>
     <ItemGroup>
-      <VSIXSourceItem Include="$(OutDir)WebView2Loader.dll" Condition="Exists('$(OutDir)WebView2Loader.dll')" />
+      <VSIXSourceItem Include="$(_WebView2LoaderPath)" Condition="Exists('$(_WebView2LoaderPath)')" />
     </ItemGroup>
   </Target>
 
